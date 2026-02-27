@@ -1,3 +1,4 @@
+/* ========== Design tokens: colors, spacing, typography, radius ========== */
 :root {
   /* ----- Colors (clean, minimal, light) ----- */
   --color-bg: #fafafa;
@@ -43,14 +44,14 @@
   --radius-lg: 12px;
   --radius-full: 9999px;
 
+  /* Base typography and colors applied to the root */
   font-family: var(--font-body);
   line-height: var(--line-height-normal);
   font-weight: var(--font-weight-normal);
-
   color-scheme: light dark;
   color: var(--color-text);
   background-color: var(--color-bg);
-
+  /* Smoother font rendering and no synthetic bold/italic */
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -58,32 +59,38 @@
 }
 
 /* ----- Base: reset ----- */
+/* Make padding/border count inside element width */
 *,
 *::before,
 *::after {
   box-sizing: border-box;
 }
 
+/* Remove default margins and padding */
 * {
   margin: 0;
   padding: 0;
 }
 
+/* No bullets/numbers on lists (we style the todo list ourselves) */
 ul, ol {
   list-style: none;
 }
 
+/* Media elements don’t overflow and stay responsive */
 img, picture, svg, video {
   display: block;
   max-width: 100%;
 }
 
+/* Form elements inherit font and color from parent */
 input, button, textarea, select {
   font: inherit;
   color: inherit;
 }
 
 /* ----- Base: body ----- */
+/* Full-height centered layout so the todo app sits in the middle of the viewport */
 body {
   min-width: 320px;
   min-height: 100vh;
@@ -99,6 +106,7 @@ body {
 }
 
 /* ----- Base: app layout (centered) ----- */
+/* Wraps the todo app; max width 480px, horizontal padding, left-aligned content */
 #app {
   width: 100%;
   max-width: 480px;
@@ -107,6 +115,7 @@ body {
   text-align: left;
 }
 
+/* Page title above the form */
 .todo-app__title {
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-semibold);
@@ -119,12 +128,14 @@ body {
   width: 100%;
 }
 
+/* Add-todo form: input + Add button in a row */
 .todo-form {
   display: flex;
   gap: var(--space-sm);
   margin-bottom: var(--space-lg);
 }
 
+/* Text input grows to fill space; focus ring for accessibility */
 .todo-form__input {
   flex: 1;
   min-width: 0;
@@ -148,6 +159,7 @@ body {
   box-shadow: 0 0 0 2px var(--color-border-focus);
 }
 
+/* Add button: accent color, doesn’t shrink when space is tight */
 .todo-form__submit {
   flex-shrink: 0;
   padding: var(--space-sm) var(--space-md);
@@ -166,6 +178,7 @@ body {
   background-color: var(--color-accent-hover);
 }
 
+/* List of todos: vertical stack with small gap */
 .todo-list {
   list-style: none;
   margin: 0;
@@ -175,6 +188,7 @@ body {
   gap: var(--space-sm);
 }
 
+/* Single todo row: checkbox + text + delete, card-style with border and shadow */
 .todo-item {
   display: flex;
   align-items: center;
@@ -187,15 +201,18 @@ body {
   transition: border-color 0.2s, background-color 0.2s;
 }
 
+/* Completed todos: slightly different background */
 .todo-item--completed {
   background-color: var(--color-surface-hover);
 }
 
+/* Completed todo text: strikethrough and muted color */
 .todo-item--completed .todo-item__text {
   text-decoration: line-through;
   color: var(--color-text-muted);
 }
 
+/* Clickable row containing checkbox and label text */
 .todo-item__row {
   flex: 1;
   min-width: 0;
@@ -206,6 +223,7 @@ body {
   padding: var(--space-xs) 0;
 }
 
+/* Checkbox: green accent when checked, keyboard focus ring */
 .todo-item__checkbox {
   flex-shrink: 0;
   width: 1.25em;
@@ -221,6 +239,7 @@ body {
   outline-offset: 2px;
 }
 
+/* Todo label text */
 .todo-item__text {
   flex: 1;
   min-width: 0;
@@ -230,6 +249,7 @@ body {
   color: var(--color-text);
 }
 
+/* Delete button: danger color, inverts on hover */
 .todo-item__delete {
   flex-shrink: 0;
   padding: var(--space-sm) var(--space-md);
@@ -255,12 +275,14 @@ body {
   outline-offset: 2px;
 }
 
+/* Visible focus ring for keyboard users on buttons and the main input */
 button:focus-visible,
 .todo-form__input:focus-visible {
   outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
 }
 
+/* Dark mode: override design tokens when user prefers dark color scheme */
 @media (prefers-color-scheme: dark) {
   :root {
     --color-bg: #1a1a1a;

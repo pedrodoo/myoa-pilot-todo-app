@@ -7,11 +7,13 @@
     <title>Todo List</title>
   </head>
   <body>
+    <!-- Main app wrapper: centered, max-width controlled by CSS -->
     <div id="app">
       <div class="todo-app">
         <header class="todo-app__header">
           <h1 class="todo-app__title">Todo List</h1>
         </header>
+        <!-- Form: submit adds a new todo; input and button are targeted by main.js -->
         <form class="todo-form" id="todo-form" aria-label="Add todo">
           <input
             type="text"
@@ -24,9 +26,11 @@
           />
           <button type="submit" class="todo-form__submit">Add</button>
         </form>
+        <!-- List container: todo items are rendered here by renderTodoList() -->
         <ul class="todo-list" id="todo-list" aria-label="Todo items"></ul>
       </div>
     </div>
+    <!-- Entry point: loads styles and wires up form + list events -->
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

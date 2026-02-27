@@ -1,23 +1,9 @@
-const STORAGE_KEY = 'todos';
+/** In-memory todo list (no backend). Each item: { id, text, completed }. */
+let todos = [];
 
-let todos = loadTodos();
-
-function loadTodos() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-  } catch {
-    return [];
-  }
-}
-
-function saveTodos() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
-}
-
-export function getTodos() {
-  return todos;
-}
-
+/**
+ * Adds a new todo. Trims text and skips if empty; creates an item with a UUID and completed: false.
+ */
 export function addTodo(text) {
   const trimmed = text.trim();
   if (!trimmed) return;
@@ -26,22 +12,29 @@ export function addTodo(text) {
     text: trimmed,
     completed: false,
   });
-  saveTodos();
 }
 
+/**
+ * Toggles the completed state of the todo with the given id (if found).
+ */
 export function toggleTodo(id) {
   const todo = todos.find((t) => t.id === id);
   if (todo) {
     todo.completed = !todo.completed;
-    saveTodos();
   }
 }
 
+/**
+ * Removes the todo with the given id from the list.
+ */
 export function removeTodo(id) {
   todos = todos.filter((t) => t.id !== id);
-  saveTodos();
 }
 
+/**
+ * Renders the full todo list into the given container. Clears it first, then builds one <li> per todo
+ * with checkbox, text (escaped), and delete button; adds --completed class when todo is done.
+ */
 export function renderTodoList(container) {
   if (!container) return;
   container.innerHTML = '';
@@ -60,6 +53,7 @@ export function renderTodoList(container) {
   }
 }
 
+/** Escapes a string so it can be safely used in innerHTML (avoids XSS). */
 function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
