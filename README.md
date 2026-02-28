@@ -65,6 +65,8 @@ Run the migrations in the Supabase SQL Editor (Dashboard → SQL Editor), or app
 
 **Hosted Supabase:** In the Dashboard, enable **Anonymous** sign-ins and **Manual linking** under Auth → Providers so guests can use the app and later create an account or sign in (their todos are then attached to their account). Signing out creates a new anonymous session.
 
+**If you see "column todos.user_id does not exist"** in the app or in the browser console, the per-user migrations have not been applied to the project you're using. Open the **same** project in the Dashboard (the one in your `.env`), go to SQL Editor, and run the contents of `supabase/migrations/apply_user_todos_manual.sql` once.
+
 ### 5. Start the dev server
 
 ```bash

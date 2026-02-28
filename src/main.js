@@ -17,7 +17,6 @@ const authEmail = document.getElementById('auth-email')
 const authPassword = document.getElementById('auth-password')
 const authSubmit = document.getElementById('auth-submit')
 const authCancel = document.getElementById('auth-cancel')
-const migrationHint = document.getElementById('migration-hint')
 
 /** Current auth modal mode: 'create' (Create account) or 'signin' (Sign in). */
 let authModalMode = 'signin'
@@ -47,14 +46,24 @@ function isAnonymous(user) {
   return user?.is_anonymous === true
 }
 
-/** Update the auth block UI: guest (Create account / Sign in) or signed-in (email + Sign out). */
+/** Update the auth block UI: guest (Create account / Sign in), pending verification, or signed-in (email + Sign out). */
 function updateAuthBlock(user) {
   if (!authBlock) return
   if (!user) {
     authBlock.innerHTML = ''
     return
   }
-  if (isAnonymous(user)) {
+  if (isAnonymous(user) && user.email) {
+    authBlock.innerHTML = `
+      <span class="auth-block__guest-text">Verification email sent to ${escapeHtml(user.email)}. Check your inbox.</span>
+      <div class="auth-block__buttons">
+        <button type="button" class="auth-block__btn" data-auth-action="signin">Sign in</button>
+      </div>
+    `
+    authBlock.querySelectorAll('[data-auth-action]').forEach((btn) => {
+      btn.addEventListener('click', () => openAuthModal(btn.dataset.authAction))
+    })
+  } else if (isAnonymous(user)) {
     authBlock.innerHTML = `
       <span class="auth-block__guest-text">Using as guest</span>
       <div class="auth-block__buttons">
@@ -120,8 +129,19 @@ async function handleSignOut() {
 
 /** Create account: link email (and optionally password) to anonymous user via updateUser. */
 async function handleCreateAccount(email, password) {
+  // #region agent log
+  const _log = (loc, msg, data, hid) => { const p = { sessionId: '1c16a5', location: loc, message: msg, data, timestamp: Date.now(), hypothesisId: hid }; fetch('http://127.0.0.1:7271/ingest/55f96f24-6b1a-4af4-a5ca-eb0161c6e637', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '1c16a5' }, body: JSON.stringify(p) }).catch(() => {}); console.debug('[auth]', loc, msg, data); };
+  _log('main.js:handleCreateAccount:entry', 'Create account started', { hasPassword: !!(password && password.length >= 6) }, 'H1');
+  // #endregion
   const { data, error } = await supabase.auth.updateUser({ email })
+  // #region agent log
+  _log('main.js:handleCreateAccount:afterUpdateEmail', 'updateUser email result', { error: error ? { code: error.code, message: error.message } : null, success: !error }, 'H1');
+  // #endregion
   if (error) {
+    if (error.status === 429 || error.message?.toLowerCase().includes('too many') || error.message?.toLowerCase().includes('rate limit')) {
+      setAuthMessage('Too many attempts. Please try again in a few minutes.')
+      return
+    }
     if (error.message?.toLowerCase().includes('already') || error.code === 'user_already_exists') {
       setAuthMessage('This email is already registered. Sign in instead.')
       authModalMode = 'signin'
@@ -136,8 +156,15 @@ async function handleCreateAccount(email, password) {
   setAuthMessage('Check your email to verify. You can set a password after verifying.')
   if (password && password.length >= 6) {
     const { error: pwError } = await supabase.auth.updateUser({ password })
+    // #region agent log
+    _log('main.js:handleCreateAccount:afterUpdatePassword', 'updateUser password result', { error: pwError ? { code: pwError.code, message: pwError.message } : null, success: !pwError }, 'H2');
+    // #endregion
     if (pwError) {
-      setAuthMessage('Check your email to verify, then you can set a password here.')
+      if (pwError.status === 429 || pwError.message?.toLowerCase().includes('too many') || pwError.message?.toLowerCase().includes('rate limit')) {
+        setAuthMessage('Too many attempts. Please try again in a few minutes.')
+      } else {
+        setAuthMessage('Check your email to verify, then you can set a password here.')
+      }
       return
     }
   }
@@ -148,13 +175,27 @@ async function handleCreateAccount(email, password) {
 
 /** Sign in: store anonymous id, sign in with password, then migrate anonymous todos to this account. */
 async function handleSignIn(email, password, anonymousUserId) {
+  // #region agent log
+  const _logSignIn = (loc, msg, data, hid) => { const p = { sessionId: '1c16a5', location: loc, message: msg, data, timestamp: Date.now(), hypothesisId: hid }; fetch('http://127.0.0.1:7271/ingest/55f96f24-6b1a-4af4-a5ca-eb0161c6e637', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '1c16a5' }, body: JSON.stringify(p) }).catch(() => {}); console.debug('[auth]', loc, msg, data); };
+  _logSignIn('main.js:handleSignIn:entry', 'Sign in started', { hasAnonymousUserId: !!anonymousUserId, anonymousUserId: anonymousUserId || null }, 'H3');
+  // #endregion
   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+  // #region agent log
+  _logSignIn('main.js:handleSignIn:afterSignIn', 'signInWithPassword result', { error: error ? { code: error.code, message: error.message } : null, success: !error }, 'H4');
+  // #endregion
   if (error) {
-    setAuthMessage(error.message ?? 'Sign in failed.')
+    if (error.status === 429 || error.message?.toLowerCase().includes('too many') || error.message?.toLowerCase().includes('rate limit')) {
+      setAuthMessage('Too many attempts. Please try again in a few minutes.')
+    } else {
+      setAuthMessage(error.message ?? 'Sign in failed.')
+    }
     return
   }
   if (anonymousUserId) {
     const { error: rpcError } = await supabase.rpc('migrate_anonymous_todos', { from_user_id: anonymousUserId })
+    // #region agent log
+    _logSignIn('main.js:handleSignIn:afterRpc', 'migrate_anonymous_todos result', { error: rpcError ? { code: rpcError.code, message: rpcError.message } : null, success: !rpcError }, 'H5');
+    // #endregion
     if (rpcError) console.error('Failed to migrate anonymous todos:', rpcError)
   }
   closeAuthModal()
@@ -168,6 +209,9 @@ authForm.addEventListener('submit', async (e) => {
   const password = authPassword.value
   if (!email) return
   setAuthMessage('')
+  // #region agent log
+  (() => { const p = { sessionId: '1c16a5', location: 'main.js:authForm:submit', message: 'Auth form submit', data: { mode: authModalMode }, timestamp: Date.now(), hypothesisId: 'H1' }; fetch('http://127.0.0.1:7271/ingest/55f96f24-6b1a-4af4-a5ca-eb0161c6e637', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '1c16a5' }, body: JSON.stringify(p) }).catch(() => {}); console.debug('[auth]', 'authForm:submit', p.data); })();
+  // #endregion
   if (authModalMode === 'create') {
     await handleCreateAccount(email, password)
   } else {
@@ -177,6 +221,9 @@ authForm.addEventListener('submit', async (e) => {
     }
     const user = await getCurrentUser()
     const anonymousUserId = user && isAnonymous(user) ? user.id : null
+    // #region agent log
+    (() => { const p = { sessionId: '1c16a5', location: 'main.js:authForm:submit:signin', message: 'Sign in branch', data: { isAnonymous: !!user && isAnonymous(user), anonymousUserId: anonymousUserId || null }, timestamp: Date.now(), hypothesisId: 'H3' }; fetch('http://127.0.0.1:7271/ingest/55f96f24-6b1a-4af4-a5ca-eb0161c6e637', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '1c16a5' }, body: JSON.stringify(p) }).catch(() => {}); console.debug('[auth]', 'authForm:signin branch', p.data); })();
+    // #endregion
     await handleSignIn(email, password, anonymousUserId)
   }
 })
@@ -256,14 +303,6 @@ listEl.addEventListener('click', async (e) => {
   }
 })
 
-/** True if the error indicates the todos table is missing the user_id column. */
-function isMissingUserIdError(error) {
-  if (!error) return false
-  const msg = (error.message || '').toLowerCase()
-  const code = error.code
-  return code === '42703' || (msg.includes('user_id') && msg.includes('does not exist'))
-}
-
 /* Load todos from Supabase for the current user (ordered by created_at ascending) and render. */
 async function loadAndRenderTodos(animateId) {
   const user = await getCurrentUser()
@@ -275,12 +314,8 @@ async function loadAndRenderTodos(animateId) {
     .order('created_at', { ascending: true })
   if (error) {
     console.error('Failed to load todos:', error)
-    if (migrationHint && isMissingUserIdError(error)) {
-      migrationHint.hidden = false
-    }
     return
   }
-  if (migrationHint) migrationHint.hidden = true
   setTodosFromDb(data ?? [])
   renderTodoList(listEl, animateId ? { animateId } : undefined)
 }
