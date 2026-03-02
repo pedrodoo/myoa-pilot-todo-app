@@ -115,16 +115,16 @@ body {
 }
 
 /* ----- Base: app layout (centered) ----- */
-/* Wraps the todo app; max width 480px, horizontal padding, left-aligned content */
+/* Wraps the todo app; wider for Kanban (four columns), horizontal padding */
 #app {
   width: 100%;
-  max-width: 480px;
+  max-width: 920px;
   margin: 0 auto;
   padding: var(--space-xl);
   text-align: left;
 }
 
-/* Page header: fixed bar at top, title left and auth right (outside card) */
+/* Page header: fixed bar at top, title + filters left and auth right (outside card) */
 .todo-app__header {
   position: fixed;
   top: 0;
@@ -133,14 +133,78 @@ body {
   width: 100%;
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: var(--space-md);
   padding: var(--space-md) var(--space-lg);
   z-index: 50;
   background-color: var(--color-bg);
 }
 
+.todo-app__header-left {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.todo-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.todo-filters__label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.todo-filters__select {
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-size-xs);
+  font-family: inherit;
+  border-radius: var(--radius-md);
+  border: none;
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-neu-inset-sm);
+  cursor: pointer;
+}
+
+.todo-filters__select:focus {
+  outline: none;
+  box-shadow: var(--shadow-neu-inset-sm), 0 0 0 2px var(--color-border-focus);
+}
+
+.todo-filters__select--category {
+  min-width: 8rem;
+}
+
+.todo-filters__manage-btn {
+  align-self: flex-start;
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  font-family: inherit;
+  border-radius: var(--radius-md);
+  border: none;
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  box-shadow: var(--shadow-neu-raised-sm);
+}
+
+.todo-filters__manage-btn:hover {
+  box-shadow: 5px 5px 10px #d0d0d0, -5px -5px 10px #ffffff;
+}
+
 .todo-app__title {
-  font-family: "Fredoka", cursive;
+  font-family: "Ultra", serif;
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-tight);
@@ -270,6 +334,47 @@ body {
 .auth-form__input:focus {
   outline: none;
   box-shadow: var(--shadow-neu-inset-sm), 0 0 0 2px var(--color-border-focus);
+}
+
+.auth-form__input--color {
+  width: 3rem;
+  height: 2.25rem;
+  padding: 2px;
+  cursor: pointer;
+}
+
+/* Add-todo modal */
+.add-todo-modal__text {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-md);
+}
+
+.add-todo-modal__form .auth-form__label {
+  margin-bottom: var(--space-sm);
+}
+
+/* Categories modal list */
+.categories-list {
+  list-style: none;
+  margin: var(--space-lg) 0 var(--space-md);
+  padding: 0;
+}
+
+.categories-list__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}
+
+.categories-list__swatch {
+  width: 1rem;
+  height: 1rem;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
 }
 
 .auth-form__password-wrap {
@@ -416,11 +521,58 @@ body {
   box-shadow: var(--shadow-neu-raised);
 }
 
-/* Add-todo form: input + Add button in a row */
+/* Kanban board: four columns in a row */
+.kanban {
+  display: flex;
+  gap: var(--space-md);
+  overflow-x: auto;
+  padding-bottom: var(--space-sm);
+  min-height: 320px;
+}
+
+.kanban__column {
+  flex: 0 0 200px;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg);
+  box-shadow: var(--shadow-neu-inset-sm);
+}
+
+.kanban__column-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+  margin: 0;
+  padding: 0;
+}
+
+.kanban__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  min-height: 120px;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.kanban__list--drag-over {
+  background-color: var(--color-surface-hover);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-neu-inset-sm);
+}
+
+/* Add-todo form: inside Tasks column */
 .todo-form {
   display: flex;
   gap: var(--space-sm);
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-sm);
 }
 
 /* Text input: inset neumorphic */
@@ -483,14 +635,96 @@ body {
 /* Single todo row: raised neumorphic card */
 .todo-item {
   display: flex;
-  align-items: center;
-  gap: var(--space-md);
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
   padding: var(--space-md) var(--space-lg);
   border-radius: var(--radius-lg);
   border: none;
   background-color: var(--color-surface);
   box-shadow: var(--shadow-neu-raised-sm);
   transition: box-shadow 0.2s, background-color 0.2s;
+}
+
+/* View: vertical stack; header has importance pill top-right */
+.todo-item__view {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+/* Top row: category (left), importance pill (top right) */
+.todo-item__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  min-height: 1.5rem;
+}
+
+.todo-item__category-pill {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+  max-width: 8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.todo-item__importance-pill {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+  background-color: var(--color-surface-hover);
+  color: var(--color-text-muted);
+  box-shadow: var(--shadow-neu-inset-sm);
+}
+
+.todo-item__importance-pill--high {
+  background-color: rgba(196, 80, 80, 0.2);
+  color: #9a3a3a;
+}
+
+.todo-item__importance-pill--medium {
+  background-color: rgba(180, 140, 60, 0.25);
+  color: #7a6020;
+}
+
+.todo-item__importance-pill--low {
+  background-color: rgba(100, 140, 180, 0.2);
+  color: #3a6080;
+}
+
+/* Due date: secondary info below task name */
+.todo-item__due {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin: 0;
+  padding: 0;
+  line-height: var(--line-height-tight);
+}
+
+.todo-item__due--overdue {
+  color: var(--color-danger);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Dragging state (drag-and-drop) */
+.todo-item--dragging {
+  opacity: 0.6;
+  cursor: grabbing;
+}
+
+.todo-item[draggable="true"] {
+  cursor: grab;
 }
 
 /* Drop-in animation: applied only while new item animates from input into place */
@@ -510,40 +744,66 @@ body {
   color: var(--color-text-muted);
 }
 
-/* Clickable row containing checkbox and label text */
+/* Task name row (no checkbox) */
 .todo-item__row {
   flex: 1;
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: var(--space-md);
-  cursor: pointer;
   padding: var(--space-xs) 0;
 }
 
-/* Checkbox: green accent when checked, keyboard focus ring */
-.todo-item__checkbox {
-  flex-shrink: 0;
-  width: 1.25em;
-  height: 1.25em;
-  margin: 0;
-  cursor: pointer;
-  accent-color: var(--color-success);
-  border-radius: var(--radius-sm);
-}
-
-.todo-item__checkbox:focus-visible {
-  outline: 2px solid var(--color-border-focus);
-  outline-offset: 2px;
-}
-
-/* Todo label text */
+/* Todo label text: primary info, most prominent */
 .todo-item__text {
   flex: 1;
   min-width: 0;
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-normal);
-  line-height: var(--line-height-normal);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  color: var(--color-text);
+}
+
+/* Actions row: Edit + Delete in a row */
+.todo-item__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.todo-item__edit {
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  font-family: inherit;
+  border-radius: var(--radius-md);
+  border: none;
+  background-color: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  box-shadow: var(--shadow-neu-inset-sm);
+  transition: color 0.2s, box-shadow 0.2s;
+}
+
+.todo-item__edit:hover {
+  color: var(--color-text);
+}
+
+.todo-item__move {
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  font-family: inherit;
+  border-radius: var(--radius-md);
+  border: none;
+  background-color: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  box-shadow: var(--shadow-neu-inset-sm);
+  transition: color 0.2s;
+}
+
+.todo-item__move:hover {
   color: var(--color-text);
 }
 
@@ -586,6 +846,42 @@ body {
 /* Visible focus ring for keyboard users on buttons and the main input */
 button:focus-visible,
 .todo-form__input:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* Move menu (accessibility: column picker for keyboard users) */
+.move-menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-neu-raised);
+  min-width: 120px;
+}
+
+.move-menu__item {
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+  text-align: left;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.move-menu__item:hover,
+.move-menu__item:focus {
+  background-color: var(--color-surface-hover);
+  outline: none;
+}
+
+.move-menu__item:focus-visible {
   outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
 }

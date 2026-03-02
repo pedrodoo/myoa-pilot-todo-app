@@ -1,22 +1,28 @@
-/** In-memory todo list. Each item: { id, text, completed, importance, dueDate, category, created_at }. */
+/** In-memory todo list. Each item: { id, text, completed, status, importance, dueDate, category, created_at }. */
 let todos = [];
 
 const IMPORTANCE_ORDER = { high: 3, medium: 2, low: 1 };
+const VALID_STATUSES = ['tasks', 'to_do', 'doing', 'completed'];
 
 /**
  * Replaces the in-memory list with rows from the DB.
- * Expects { id, text, is_complete, created_at, importance, due_date, category }.
+ * Expects { id, text, is_complete, status?, created_at, importance, due_date, category }.
+ * If status is missing, derives from is_complete (true -> 'completed', false -> 'to_do').
  */
 export function setTodosFromDb(rows) {
-  todos = (rows || []).map((r) => ({
-    id: String(r.id),
-    text: r.text ?? '',
-    completed: Boolean(r.is_complete),
-    importance: r.importance && ['high', 'medium', 'low'].includes(r.importance) ? r.importance : null,
-    dueDate: r.due_date ? (typeof r.due_date === 'string' ? r.due_date.slice(0, 10) : null) : null,
-    category: r.category && String(r.category).trim() ? String(r.category).trim() : null,
-    created_at: r.created_at || null,
-  }));
+  todos = (rows || []).map((r) => {
+    const status = r.status && VALID_STATUSES.includes(r.status) ? r.status : (r.is_complete ? 'completed' : 'to_do');
+    return {
+      id: String(r.id),
+      text: r.text ?? '',
+      completed: Boolean(r.is_complete),
+      status,
+      importance: r.importance && ['high', 'medium', 'low'].includes(r.importance) ? r.importance : null,
+      dueDate: r.due_date ? (typeof r.due_date === 'string' ? r.due_date.slice(0, 10) : null) : null,
+      category: r.category && String(r.category).trim() ? String(r.category).trim() : null,
+      created_at: r.created_at || null,
+    };
+  });
 }
 
 /**
@@ -33,6 +39,7 @@ export function addTodo(text, options = {}) {
     id,
     text: trimmed,
     completed: false,
+    status: 'tasks',
     importance,
     dueDate: options.dueDate && String(options.dueDate).trim() ? String(options.dueDate).slice(0, 10) : null,
     category: options.category && String(options.category).trim() ? String(options.category).trim() : null,
@@ -42,7 +49,7 @@ export function addTodo(text, options = {}) {
 }
 
 /**
- * Updates the todo with the given id. patch: { importance?, dueDate?, category? }.
+ * Updates the todo with the given id. patch: { importance?, dueDate?, category?, status? }.
  */
 export function updateTodo(id, patch) {
   const todo = todos.find((t) => t.id === id);
@@ -50,16 +57,21 @@ export function updateTodo(id, patch) {
   if (patch.hasOwnProperty('importance')) todo.importance = patch.importance && ['high', 'medium', 'low'].includes(patch.importance) ? patch.importance : null;
   if (patch.hasOwnProperty('dueDate')) todo.dueDate = patch.dueDate && String(patch.dueDate).trim() ? String(patch.dueDate).slice(0, 10) : null;
   if (patch.hasOwnProperty('category')) todo.category = patch.category && String(patch.category).trim() ? String(patch.category).trim() : null;
+  if (patch.hasOwnProperty('status') && VALID_STATUSES.includes(patch.status)) {
+    todo.status = patch.status;
+    todo.completed = patch.status === 'completed';
+  }
 }
 
 /**
- * Toggles the completed state of the todo with the given id (if found).
+ * Sets the status of the todo (for drag-and-drop). Updates completed when status is 'completed'.
  */
-export function toggleTodo(id) {
+export function setTodoStatus(id, status) {
+  if (!VALID_STATUSES.includes(status)) return;
   const todo = todos.find((t) => t.id === id);
-  if (todo) {
-    todo.completed = !todo.completed;
-  }
+  if (!todo) return;
+  todo.status = status;
+  todo.completed = status === 'completed';
 }
 
 /**
@@ -124,83 +136,109 @@ export function getTodosForDisplay(options = {}) {
 }
 
 /**
- * Renders the todo list into the given container. Uses getTodosForDisplay with options.
- * options: { sortBy, sortOrder, filterType, filterValue, categories = [], animateId }.
- * categories: array of { name, color } for category pills and dropdowns.
+ * Returns todos for a single Kanban column (by status), sorted.
+ * options: { sortBy, sortOrder } (default sortBy: 'created', sortOrder: 'asc').
  */
-export function renderTodoList(container, options = {}) {
+export function getTodosForColumn(status, options = {}) {
+  const { sortBy = 'created', sortOrder = 'asc' } = options;
+  return getTodosForDisplay({ sortBy, sortOrder, filterType: 'all' }).filter((t) => t.status === status);
+}
+
+/**
+ * Renders one Kanban column's cards into the given container. No checkbox.
+ * options: { categories = [], sortBy, sortOrder }.
+ */
+export function renderTodoColumn(container, status, options = {}) {
   if (!container) return;
   const categories = options.categories || [];
-  const displayList = getTodosForDisplay({
-    sortBy: options.sortBy,
-    sortOrder: options.sortOrder,
-    filterType: options.filterType,
-    filterValue: options.filterValue,
-  });
+  const list = getTodosForColumn(status, { sortBy: options.sortBy || 'created', sortOrder: options.sortOrder || 'asc' });
 
   container.innerHTML = '';
-  for (const todo of displayList) {
-    const categoryColor = todo.category ? (categories.find((c) => c.name === todo.category)?.color || '#888') : null;
-    const importanceLabel = todo.importance ? todo.importance.charAt(0).toUpperCase() + todo.importance.slice(1) : '';
-    const dueLabel = todo.dueDate ? formatDueDate(todo.dueDate) : '';
-    const isOverdue = todo.dueDate && todo.dueDate < new Date().toISOString().slice(0, 10) && !todo.completed;
-
-    const li = document.createElement('li');
-    li.className = 'todo-item' + (todo.completed ? ' todo-item--completed' : '');
-    if (categoryColor) li.style.setProperty('--todo-category-color', categoryColor);
-    li.dataset.id = todo.id;
-
-    const categoryOptionsHtml = categories.map((c) => `<option value="${escapeHtml(c.name)}" ${todo.category === c.name ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('');
-
-    li.innerHTML = `
-      <div class="todo-item__view">
-        <div class="todo-item__meta">
-          ${categoryColor ? `<span class="todo-item__category-pill" style="background-color:${escapeHtml(categoryColor)}">${escapeHtml(todo.category)}</span>` : ''}
-          ${importanceLabel ? `<span class="todo-item__importance todo-item__importance--${todo.importance}">${escapeHtml(importanceLabel)}</span>` : ''}
-          ${dueLabel ? `<span class="todo-item__due ${isOverdue ? 'todo-item__due--overdue' : ''}">${escapeHtml(dueLabel)}</span>` : ''}
-        </div>
-        <label class="todo-item__row">
-          <input type="checkbox" class="todo-item__checkbox" ${todo.completed ? 'checked' : ''} data-action="toggle" />
-          <span class="todo-item__text">${escapeHtml(todo.text)}</span>
-        </label>
-        <div class="todo-item__actions">
-          <button type="button" class="todo-item__edit" data-action="edit" aria-label="Edit">Edit</button>
-          <button type="button" class="todo-item__delete" data-action="delete" aria-label="Delete">
-            <svg class="todo-item__delete-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-          </button>
-        </div>
-      </div>
-      <div class="todo-item__edit-form" hidden>
-        <label class="todo-item__edit-label">Importance
-          <select class="todo-item__edit-importance" data-edit-field="importance">
-            <option value="" ${!todo.importance ? 'selected' : ''}>None</option>
-            <option value="high" ${todo.importance === 'high' ? 'selected' : ''}>High</option>
-            <option value="medium" ${todo.importance === 'medium' ? 'selected' : ''}>Medium</option>
-            <option value="low" ${todo.importance === 'low' ? 'selected' : ''}>Low</option>
-          </select>
-        </label>
-        <label class="todo-item__edit-label">Due date
-          <input type="date" class="todo-item__edit-due" data-edit-field="dueDate" value="${todo.dueDate || ''}" />
-        </label>
-        <label class="todo-item__edit-label">Category
-          <select class="todo-item__edit-category" data-edit-field="category">
-            <option value="">None</option>
-            ${categoryOptionsHtml}
-          </select>
-        </label>
-        <div class="todo-item__edit-actions">
-          <button type="button" class="todo-item__edit-save" data-action="edit-save">Save</button>
-          <button type="button" class="todo-item__edit-cancel" data-action="edit-cancel">Cancel</button>
-        </div>
-      </div>
-    `;
-    container.appendChild(li);
+  for (const todo of list) {
+    container.appendChild(createTodoCardElement(todo, categories));
   }
 
   const animateId = options?.animateId;
-  if (animateId) {
+  if (animateId && list.some((t) => t.id === animateId)) {
     runDropInAnimation(container, animateId);
   }
+}
+
+/**
+ * Renders the full Kanban board: fills each column container with cards for that status.
+ * columnContainers: { tasks: HTMLElement, to_do: HTMLElement, doing: HTMLElement, completed: HTMLElement }.
+ * options: { categories = [], sortBy, sortOrder, animateId }.
+ */
+export function renderKanbanBoard(columnContainers, options = {}) {
+  if (!columnContainers) return;
+  const opts = { categories: options.categories || [], sortBy: options.sortBy || 'created', sortOrder: options.sortOrder || 'asc', animateId: options.animateId };
+  for (const status of VALID_STATUSES) {
+    const el = columnContainers[status];
+    if (el) renderTodoColumn(el, status, opts);
+  }
+}
+
+/**
+ * Builds one todo card DOM element (no checkbox). Used by renderTodoColumn.
+ */
+function createTodoCardElement(todo, categories) {
+  const categoryColor = todo.category ? (categories.find((c) => c.name === todo.category)?.color || '#888') : null;
+  const importanceLabel = todo.importance ? todo.importance.charAt(0).toUpperCase() + todo.importance.slice(1) : '';
+  const dueLabel = todo.dueDate ? formatDueDate(todo.dueDate) : '';
+  const isOverdue = todo.dueDate && todo.dueDate < new Date().toISOString().slice(0, 10) && !todo.completed;
+
+  const li = document.createElement('li');
+  li.className = 'todo-item' + (todo.completed ? ' todo-item--completed' : '');
+  li.draggable = true;
+  li.dataset.id = todo.id;
+  li.dataset.status = todo.status;
+  if (categoryColor) li.style.setProperty('--todo-category-color', categoryColor);
+
+  const categoryOptionsHtml = categories.map((c) => `<option value="${escapeHtml(c.name)}" ${todo.category === c.name ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('');
+
+  li.innerHTML = `
+    <div class="todo-item__view">
+      <div class="todo-item__header">
+        ${categoryColor ? `<span class="todo-item__category-pill" style="background-color:${escapeHtml(categoryColor)}">${escapeHtml(todo.category)}</span>` : ''}
+        ${importanceLabel ? `<span class="todo-item__importance-pill todo-item__importance-pill--${todo.importance}">${escapeHtml(importanceLabel)}</span>` : ''}
+      </div>
+      <div class="todo-item__row">
+        <span class="todo-item__text">${escapeHtml(todo.text)}</span>
+      </div>
+      ${dueLabel ? `<p class="todo-item__due ${isOverdue ? 'todo-item__due--overdue' : ''}">${escapeHtml(dueLabel)}</p>` : ''}
+      <div class="todo-item__actions">
+        <button type="button" class="todo-item__edit" data-action="edit" aria-label="Edit">Edit</button>
+        <button type="button" class="todo-item__move" data-action="move" aria-label="Move to column" aria-haspopup="true">Move</button>
+        <button type="button" class="todo-item__delete" data-action="delete" aria-label="Delete">
+          <svg class="todo-item__delete-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+        </button>
+      </div>
+    </div>
+    <div class="todo-item__edit-form" hidden>
+      <label class="todo-item__edit-label">Importance
+        <select class="todo-item__edit-importance" data-edit-field="importance">
+          <option value="" ${!todo.importance ? 'selected' : ''}>None</option>
+          <option value="high" ${todo.importance === 'high' ? 'selected' : ''}>High</option>
+          <option value="medium" ${todo.importance === 'medium' ? 'selected' : ''}>Medium</option>
+          <option value="low" ${todo.importance === 'low' ? 'selected' : ''}>Low</option>
+        </select>
+      </label>
+      <label class="todo-item__edit-label">Due date
+        <input type="date" class="todo-item__edit-due" data-edit-field="dueDate" value="${todo.dueDate || ''}" />
+      </label>
+      <label class="todo-item__edit-label">Category
+        <select class="todo-item__edit-category" data-edit-field="category">
+          <option value="">None</option>
+          ${categoryOptionsHtml}
+        </select>
+      </label>
+      <div class="todo-item__edit-actions">
+        <button type="button" class="todo-item__edit-save" data-action="edit-save">Save</button>
+        <button type="button" class="todo-item__edit-cancel" data-action="edit-cancel">Cancel</button>
+      </div>
+    </div>
+  `;
+  return li;
 }
 
 function formatDueDate(isoDate) {

@@ -3,7 +3,7 @@
    ───────────────────────────────────────────────────────────────────────────── */
 import './style.css'
 import { supabase } from './supabase.js'
-import { renderTodoList, setTodosFromDb, updateTodo } from './todos.js'
+import { renderKanbanBoard, setTodosFromDb, updateTodo, setTodoStatus } from './todos.js'
 
 /* ─────────────────────────────────────────────────────────────────────────────
    UI COPY & LABELS (designer-editable)
@@ -119,10 +119,19 @@ const authFormSetPassword = document.getElementById('auth-form-set-password')
 const authNewPassword = document.getElementById('auth-new-password')
 const authPasswordConfirm = document.getElementById('auth-password-confirm')
 
-// Todo: input form + list
+// Todo: Kanban board and column lists
 const form = document.getElementById('todo-form')
 const input = document.getElementById('todo-input')
-const listEl = document.getElementById('todo-list')
+const kanbanEl = document.getElementById('kanban')
+
+function getKanbanColumnContainers() {
+  return {
+    tasks: document.getElementById('kanban-list-tasks'),
+    to_do: document.getElementById('kanban-list-to_do'),
+    doing: document.getElementById('kanban-list-doing'),
+    completed: document.getElementById('kanban-list-completed'),
+  }
+}
 // Add-todo modal (importance, due date, category when creating)
 const addTodoModal = document.getElementById('add-todo-modal')
 const addTodoModalBackdrop = document.getElementById('add-todo-modal-backdrop')
@@ -329,7 +338,7 @@ function handleSignOut() {
   updateAuthBlock({ is_anonymous: true })
   setTodosFromDb([])
   categories = []
-  renderTodoList(listEl, { categories: [] })
+  renderKanbanBoard(getKanbanColumnContainers(), { categories: [] })
   ;(async () => {
     try {
       await Promise.race([
@@ -574,41 +583,173 @@ function getFilterValue() {
 async function loadAndRenderTodos(animateId) {
   const user = await getCurrentUser()
   if (!user) return
-  const { data, error } = await supabase
+  let result = await supabase
     .from('todos')
-    .select('id, text, is_complete, created_at, importance, due_date, category')
+    .select('id, text, is_complete, created_at, importance, due_date, category, status')
     .eq('user_id', user.id)
     .order('created_at', { ascending: true })
+  let { data, error } = result
+  if (error && (error.message || '').includes('status') && (error.message || '').includes('does not exist')) {
+    result = await supabase
+      .from('todos')
+      .select('id, text, is_complete, created_at, importance, due_date, category')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: true })
+    data = result.data
+    error = result.error
+  }
   if (error) {
     console.error('Failed to load todos:', error)
     return
   }
-  if (typeof setTodosFromDb !== 'function' || typeof renderTodoList !== 'function') {
-    console.error('setTodosFromDb or renderTodoList missing')
+  if (typeof setTodosFromDb !== 'function' || typeof renderKanbanBoard !== 'function') {
+    console.error('setTodosFromDb or renderKanbanBoard missing')
     return
   }
   setTodosFromDb(data ?? [])
-  const filterVal = getFilterValue()
-  renderTodoList(listEl, {
+  renderKanbanBoard(getKanbanColumnContainers(), {
     sortBy,
     sortOrder,
-    filterType: filterTypeVal,
-    filterValue: filterVal,
     categories,
     animateId: animateId || undefined,
   })
 }
 
 function applyFilterSortAndRender() {
-  const filterVal = getFilterValue()
-  renderTodoList(listEl, {
+  renderKanbanBoard(getKanbanColumnContainers(), {
     sortBy,
     sortOrder,
-    filterType: filterTypeVal,
-    filterValue: filterVal,
     categories,
   })
 }
+
+async function moveTodoToStatus(id, newStatus) {
+  if (!id || !supabase) return
+  const user = await getCurrentUser()
+  if (!user) return
+  let result = await supabase
+    .from('todos')
+    .update({ status: newStatus })
+    .eq('id', id)
+    .eq('user_id', user.id)
+  if (result.error && (result.error.message || '').includes('status') && (result.error.message || '').includes('does not exist')) {
+    result = await supabase
+      .from('todos')
+      .update({ is_complete: newStatus === 'completed' })
+      .eq('id', id)
+      .eq('user_id', user.id)
+  }
+  if (result.error) {
+    console.error('Failed to move todo:', result.error)
+    return
+  }
+  setTodoStatus(id, newStatus)
+  applyFilterSortAndRender()
+}
+
+const MOVE_MENU_STATUSES = [
+  { value: 'tasks', label: 'Tasks' },
+  { value: 'to_do', label: 'To do' },
+  { value: 'doing', label: 'Doing' },
+  { value: 'completed', label: 'Completed' },
+]
+
+function openMoveMenu(li, id) {
+  const existing = document.getElementById('move-menu')
+  if (existing) existing.remove()
+
+  const menu = document.createElement('div')
+  menu.id = 'move-menu'
+  menu.setAttribute('role', 'menu')
+  menu.setAttribute('aria-label', 'Move to column')
+  menu.className = 'move-menu'
+
+  const moveBtn = li.querySelector('[data-action="move"]')
+  const rect = moveBtn ? moveBtn.getBoundingClientRect() : li.getBoundingClientRect()
+
+  for (const { value, label } of MOVE_MENU_STATUSES) {
+    const btn = document.createElement('button')
+    btn.type = 'button'
+    btn.setAttribute('role', 'menuitem')
+    btn.className = 'move-menu__item'
+    btn.textContent = label
+    btn.addEventListener('click', () => {
+      moveTodoToStatus(id, value)
+      closeMoveMenu()
+    })
+    menu.appendChild(btn)
+  }
+
+  document.body.appendChild(menu)
+  menu.style.position = 'fixed'
+  menu.style.left = `${rect.left}px`
+  menu.style.top = `${rect.bottom + 4}px`
+  menu.style.zIndex = '200'
+
+  const closeMoveMenu = () => {
+    menu.remove()
+    document.removeEventListener('click', closeOnOutside)
+    document.removeEventListener('keydown', closeOnEscape)
+  }
+  const closeOnOutside = (e) => {
+    if (!menu.contains(e.target) && !li.contains(e.target)) closeMoveMenu()
+  }
+  const closeOnEscape = (e) => {
+    if (e.key === 'Escape') closeMoveMenu()
+  }
+  document.addEventListener('click', closeOnOutside)
+  document.addEventListener('keydown', closeOnEscape)
+
+  requestAnimationFrame(() => menu.querySelector('button')?.focus())
+}
+
+// Drag-and-drop: cards draggable; column lists are drop targets
+// Use delegated listeners so events fire reliably across browsers.
+document.addEventListener('dragstart', (e) => {
+  const card = e.target.closest('.todo-item')
+  if (!card) return
+  const id = card.dataset.id ?? ''
+  const fromStatus =
+    card.dataset.status ??
+    card.parentElement?.getAttribute('data-status') ??
+    card.closest('.kanban__column')?.getAttribute('data-status') ??
+    null
+  if (e.dataTransfer) {
+    e.dataTransfer.setData('text/plain', id)
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setDragImage(card, 0, 0)
+  }
+  card.classList.add('todo-item--dragging')
+})
+
+document.addEventListener('dragend', (e) => {
+  const card = e.target.closest('.todo-item')
+  if (card) card.classList.remove('todo-item--dragging')
+})
+
+document.addEventListener('dragover', (e) => {
+  const list = e.target.closest('.kanban__list')
+  if (!list) return
+  e.preventDefault()
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'
+  list.classList.add('kanban__list--drag-over')
+})
+
+document.addEventListener('dragleave', (e) => {
+  const list = e.target.closest('.kanban__list')
+  if (!list) return
+  if (!list.contains(e.relatedTarget)) list.classList.remove('kanban__list--drag-over')
+})
+
+document.addEventListener('drop', (e) => {
+  const list = e.target.closest('.kanban__list')
+  if (!list) return
+  e.preventDefault()
+  list.classList.remove('kanban__list--drag-over')
+  const id = e.dataTransfer ? e.dataTransfer.getData('text/plain') : ''
+  const columnStatus = list.parentElement?.getAttribute('data-status')
+  if (id && columnStatus) moveTodoToStatus(id, columnStatus)
+})
 
 form.addEventListener('submit', (e) => {
   e.preventDefault?.()
@@ -661,11 +802,19 @@ if (addTodoModalForm) {
     const importance = addTodoModalImportance?.value?.trim() || null
     const dueDate = addTodoModalDueDate?.value?.trim() || null
     const category = addTodoModalCategory?.value?.trim() || null
-    const { data, error } = await supabase
+    let result = await supabase
       .from('todos')
-      .insert({ text: pendingAddTodoText, is_complete: false, user_id: user.id, importance, due_date: dueDate || null, category })
+      .insert({ text: pendingAddTodoText, is_complete: false, status: 'tasks', user_id: user.id, importance, due_date: dueDate || null, category })
       .select('id')
       .single()
+    if (result.error && (result.error.message || '').includes('status') && (result.error.message || '').includes('does not exist')) {
+      result = await supabase
+        .from('todos')
+        .insert({ text: pendingAddTodoText, is_complete: false, user_id: user.id, importance, due_date: dueDate || null, category })
+        .select('id')
+        .single()
+    }
+    const { data, error } = result
     if (error) {
       console.error('Failed to insert todo:', error)
       if (input) input.value = pendingAddTodoText
@@ -686,28 +835,7 @@ if (addTodoModalBackdrop) addTodoModalBackdrop.addEventListener('click', () => {
   closeAddTodoModal()
 })
 
-listEl.addEventListener('change', async (e) => {
-  if (!e.target.classList.contains('todo-item__checkbox')) return
-  const li = e.target.closest('.todo-item')
-  const id = li?.dataset.id
-  if (!id || !supabase) return
-  const user = await getCurrentUser()
-  if (!user) return
-  const isComplete = e.target.checked
-  const { error } = await supabase
-    .from('todos')
-    .update({ is_complete: isComplete })
-    .eq('id', id)
-    .eq('user_id', user.id)
-  if (error) {
-    console.error('Failed to toggle todo:', error)
-    e.target.checked = !isComplete
-    return
-  }
-  await loadAndRenderTodos()
-})
-
-// Filter/sort: update state and re-render
+// Filter/sort: update state and re-render (within-column order only)
 if (filterSortBy) {
   filterSortBy.addEventListener('change', () => {
     sortBy = filterSortBy.value
@@ -731,7 +859,8 @@ if (filterCategory) {
   filterCategory.addEventListener('change', () => applyFilterSortAndRender())
 }
 
-listEl.addEventListener('click', async (e) => {
+// Delegate card actions from Kanban (cards live in any column list)
+;(kanbanEl || document).addEventListener('click', async (e) => {
   const li = e.target.closest('.todo-item')
   if (!li) return
   const id = li?.dataset.id
@@ -787,6 +916,13 @@ listEl.addEventListener('click', async (e) => {
       editForm.hidden = true
     }
     applyFilterSortAndRender()
+    return
+  }
+
+  // Move (accessibility): handled below with move menu
+  if (action === 'move') {
+    e.preventDefault()
+    openMoveMenu(li, id)
     return
   }
 
