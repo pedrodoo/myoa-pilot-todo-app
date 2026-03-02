@@ -144,6 +144,7 @@ const addTodoModalForm = document.getElementById('add-todo-modal-form')
 const addTodoModalImportance = document.getElementById('add-todo-modal-importance')
 const addTodoModalDueDate = document.getElementById('add-todo-modal-due-date')
 const addTodoModalCategory = document.getElementById('add-todo-modal-category')
+const addTodoModalTask = document.getElementById('add-todo-modal-task')
 const addTodoModalCancel = document.getElementById('add-todo-modal-cancel')
 const filterSortBy = document.getElementById('filter-sort-by')
 const filterSortOrder = document.getElementById('filter-sort-order')
@@ -193,6 +194,9 @@ let filterValue = null
 
 /** Pending todo text when add-todo modal is open (user clicked Add with text, modal sets options). */
 let pendingAddTodoText = null
+
+/** Target status when adding from a column + button; otherwise 'tasks' (Inbox). */
+let pendingAddTodoStatus = 'tasks'
 
 /** Id of the todo being edited in the edit-todo modal. */
 let editingTodoId = null
@@ -570,14 +574,14 @@ async function loadCategories() {
   if (!user || !supabase) return
   const { data, error } = await supabase
     .from('categories')
-    .select('name, color')
+    .select('id, name, color')
     .eq('user_id', user.id)
     .order('name', { ascending: true })
   if (error) {
     console.error('Failed to load categories:', error)
     return
   }
-  categories = (data ?? []).map((r) => ({ name: r.name, color: r.color || '#888' }))
+  categories = (data ?? []).map((r) => ({ id: r.id, name: r.name, color: r.color || '#888' }))
   populateCategoryDropdowns()
 }
 
@@ -734,7 +738,24 @@ form.addEventListener('submit', (e) => {
     return
   }
   pendingAddTodoText = text
+  pendingAddTodoStatus = 'tasks'
   input.value = ''
+  openAddTodoModal()
+})
+
+// Column + button: add task directly to that column
+;(kanbanEl || document).addEventListener('click', (e) => {
+  const btn = e.target.closest('.kanban__add-btn')
+  if (!btn) return
+  e.preventDefault()
+  const status = btn.getAttribute('data-add-to-status')
+  if (!status) return
+  if (!supabase) {
+    console.error('Supabase is not configured.')
+    return
+  }
+  pendingAddTodoText = null
+  pendingAddTodoStatus = status
   openAddTodoModal()
 })
 
@@ -742,6 +763,10 @@ function openAddTodoModal() {
   if (!addTodoModal || !addTodoModalBackdrop) return
   populateCategoryDropdowns()
   if (addTodoModalText) addTodoModalText.textContent = pendingAddTodoText ? `Add todo: "${pendingAddTodoText}"` : ''
+  if (addTodoModalTask) {
+    addTodoModalTask.value = pendingAddTodoText ?? ''
+    addTodoModalTask.closest('.auth-form__label')?.classList.toggle('auth-form__label--hidden', !!pendingAddTodoText)
+  }
   if (addTodoModalImportance) addTodoModalImportance.value = ''
   if (addTodoModalDueDate) addTodoModalDueDate.value = ''
   if (addTodoModalCategory) addTodoModalCategory.value = ''
@@ -749,7 +774,8 @@ function openAddTodoModal() {
   addTodoModal.setAttribute('aria-hidden', 'false')
   addTodoModalBackdrop.hidden = false
   addTodoModalBackdrop.setAttribute('aria-hidden', 'false')
-  if (addTodoModalImportance) addTodoModalImportance.focus()
+  if (addTodoModalTask && !pendingAddTodoText) addTodoModalTask.focus()
+  else if (addTodoModalImportance) addTodoModalImportance.focus()
 }
 
 function closeAddTodoModal() {
@@ -759,6 +785,8 @@ function closeAddTodoModal() {
   addTodoModalBackdrop.hidden = true
   addTodoModalBackdrop.setAttribute('aria-hidden', 'true')
   pendingAddTodoText = null
+  pendingAddTodoStatus = 'tasks'
+  if (addTodoModalTask) addTodoModalTask.value = ''
   if (addTodoModalImportance) addTodoModalImportance.value = ''
   if (addTodoModalDueDate) addTodoModalDueDate.value = ''
   if (addTodoModalCategory) addTodoModalCategory.value = ''
@@ -767,7 +795,8 @@ function closeAddTodoModal() {
 if (addTodoModalForm) {
   addTodoModalForm.addEventListener('submit', async (e) => {
     e.preventDefault?.()
-    if (!pendingAddTodoText || !supabase) return
+    const text = (addTodoModalTask?.value?.trim() ?? pendingAddTodoText ?? '').trim()
+    if (!text || !supabase) return
     const user = await getCurrentUser()
     if (!user) {
       console.error('Not signed in. Cannot add todo.')
@@ -776,22 +805,23 @@ if (addTodoModalForm) {
     const importance = addTodoModalImportance?.value?.trim() || null
     const dueDate = addTodoModalDueDate?.value?.trim() || null
     const category = addTodoModalCategory?.value?.trim() || null
+    const status = pendingAddTodoStatus || 'tasks'
     let result = await supabase
       .from('todos')
-      .insert({ text: pendingAddTodoText, is_complete: false, status: 'tasks', user_id: user.id, importance, due_date: dueDate || null, category })
+      .insert({ text, is_complete: status === 'completed', status, user_id: user.id, importance, due_date: dueDate || null, category })
       .select('id')
       .single()
     if (result.error && (result.error.message || '').includes('status') && (result.error.message || '').includes('does not exist')) {
       result = await supabase
         .from('todos')
-        .insert({ text: pendingAddTodoText, is_complete: false, user_id: user.id, importance, due_date: dueDate || null, category })
+        .insert({ text, is_complete: status === 'completed', user_id: user.id, importance, due_date: dueDate || null, category })
         .select('id')
         .single()
     }
     const { data, error } = result
     if (error) {
       console.error('Failed to insert todo:', error)
-      if (input) input.value = pendingAddTodoText
+      if (input) input.value = text
       closeAddTodoModal()
       return
     }
@@ -1074,7 +1104,12 @@ function renderCategoriesList() {
   categoriesListEl.innerHTML = categories
     .map(
       (c) =>
-        `<li class="categories-list__item"><span class="categories-list__swatch" style="background-color:${escapeHtml(c.color)}"></span>${escapeHtml(c.name)}</li>`
+        `<li class="categories-list__item">
+          <span class="categories-list__pill todo-item__category-pill" style="color:${escapeHtml(c.color)}">${escapeHtml(c.name)}</span>
+          ${c.id != null ? `<button type="button" class="categories-list__delete" data-category-id="${escapeHtml(String(c.id))}" aria-label="Delete category ${escapeHtml(c.name)}">
+            <svg class="categories-list__delete-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>` : ''}
+        </li>`
     )
     .join('')
 }
@@ -1098,6 +1133,25 @@ if (categoriesForm) {
     }
     if (categoryNameInput) categoryNameInput.value = ''
     if (categoryColorInput) categoryColorInput.value = '#10b981'
+    await loadCategories()
+    renderCategoriesList()
+    applyFilterSortAndRender()
+  })
+}
+
+if (categoriesListEl) {
+  categoriesListEl.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.categories-list__delete')
+    if (!btn || !supabase) return
+    const id = btn.dataset.categoryId
+    if (!id) return
+    const user = await getCurrentUser()
+    if (!user) return
+    const { error } = await supabase.from('categories').delete().eq('id', id).eq('user_id', user.id)
+    if (error) {
+      console.error('Failed to delete category:', error)
+      return
+    }
     await loadCategories()
     renderCategoriesList()
     applyFilterSortAndRender()

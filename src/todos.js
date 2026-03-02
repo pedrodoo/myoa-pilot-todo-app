@@ -196,28 +196,29 @@ function createTodoCardElement(todo, categories) {
   const isOverdue = todo.dueDate && todo.dueDate < new Date().toISOString().slice(0, 10) && !todo.completed;
 
   const li = document.createElement('li');
-  li.className = 'todo-item' + (todo.completed ? ' todo-item--completed' : '');
+  li.className = 'todo-item' + (todo.completed ? ' todo-item--completed' : '') + (todo.importance ? ` todo-item--importance-${todo.importance}` : '');
   li.draggable = true;
   li.dataset.id = todo.id;
   li.dataset.status = todo.status;
   if (categoryColor) li.style.setProperty('--todo-category-color', categoryColor);
+  const importanceA11y = todo.importance ? `<span class="visually-hidden">${importanceLabel} priority</span>` : '';
 
   const categoryOptionsHtml = categories.map((c) => `<option value="${escapeHtml(c.name)}" ${todo.category === c.name ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('');
 
   li.innerHTML = `
     <div class="todo-item__view">
+      ${importanceA11y}
       <button type="button" class="todo-item__delete todo-item__delete--x" data-action="delete" aria-label="Delete">
         <svg class="todo-item__delete-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
       <div class="todo-item__header">
-        ${importanceLabel ? `<span class="todo-item__importance-pill todo-item__importance-pill--${todo.importance}">${escapeHtml(importanceLabel)}</span>` : ''}
       </div>
       <div class="todo-item__row">
         <span class="todo-item__text">${escapeHtml(todo.text)}</span>
       </div>
-      ${dueLabel ? `<p class="todo-item__due ${isOverdue ? 'todo-item__due--overdue' : ''}">${escapeHtml(dueLabel)}</p>` : ''}
+      ${dueLabel ? `<p class="todo-item__due ${isOverdue ? 'todo-item__due--overdue' : ''}">Due ${escapeHtml(dueLabel)}</p>` : ''}
       <div class="todo-item__actions">
-        ${categoryColor ? `<span class="todo-item__category-pill" style="background-color:${escapeHtml(categoryColor)}">${escapeHtml(todo.category)}</span>` : ''}
+        ${categoryColor ? `<span class="todo-item__category-pill" style="color:${escapeHtml(categoryColor)}">${escapeHtml(todo.category)}</span>` : ''}
         <button type="button" class="todo-item__edit" data-action="edit" aria-label="Edit">Edit</button>
       </div>
     </div>

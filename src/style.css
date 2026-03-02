@@ -148,6 +148,13 @@ body {
   gap: var(--space-sm);
 }
 
+.todo-app__header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-md);
+}
+
 .todo-filters {
   display: flex;
   flex-wrap: wrap;
@@ -186,7 +193,6 @@ body {
 }
 
 .todo-filters__manage-btn {
-  align-self: flex-start;
   padding: var(--space-xs) var(--space-sm);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
@@ -196,16 +202,22 @@ body {
   background-color: var(--color-surface);
   color: var(--color-text);
   cursor: pointer;
-  box-shadow: var(--shadow-neu-raised-sm);
+  box-shadow: var(--shadow-neu-inset-sm);
+  transition: box-shadow 0.2s ease;
 }
 
 .todo-filters__manage-btn:hover {
-  box-shadow: 5px 5px 10px #d0d0d0, -5px -5px 10px #ffffff;
+  box-shadow: var(--shadow-neu-inset-sm), 0 0 0 1px var(--color-border);
+}
+
+.todo-filters__manage-btn:focus {
+  outline: none;
+  box-shadow: var(--shadow-neu-inset-sm), 0 0 0 2px var(--color-border-focus);
 }
 
 .todo-app__title {
   font-family: "Ultra", serif;
-  font-size: var(--font-size-2xl);
+  font-size: 2rem;
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-tight);
   margin: 0;
@@ -297,6 +309,54 @@ body {
   box-shadow: var(--shadow-neu-raised);
 }
 
+.auth-modal__header {
+  margin-bottom: var(--space-md);
+}
+
+.auth-modal__header--with-close {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+  position: relative;
+}
+
+.auth-modal__header--with-close .auth-modal__title {
+  margin: 0;
+  flex: 1;
+}
+
+/* Modal close X (card pattern: top-right) */
+.auth-modal__close {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xs);
+  font-family: inherit;
+  border-radius: 0;
+  border: none;
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  box-shadow: none;
+  transition: color 0.2s, background-color 0.2s;
+}
+
+.auth-modal__close-icon {
+  display: block;
+}
+
+.auth-modal__close:hover {
+  background-color: transparent;
+  color: var(--color-text);
+}
+
+.auth-modal__close:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
 .auth-modal__title {
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
@@ -354,6 +414,10 @@ body {
   margin-bottom: var(--space-sm);
 }
 
+.auth-form__label--hidden {
+  display: none;
+}
+
 /* Delete confirm dialog: message + Yes / Cancel */
 .delete-confirm-modal .auth-modal__message {
   margin-bottom: var(--space-lg);
@@ -363,6 +427,25 @@ body {
   display: flex;
   gap: var(--space-md);
   flex-wrap: wrap;
+}
+
+/* Categories form: Name + Color on one line */
+.categories-form__row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.categories-form__name-label {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.categories-form__color-label {
+  flex-shrink: 0;
+  margin-bottom: 0;
 }
 
 /* Categories modal list */
@@ -381,11 +464,37 @@ body {
   color: var(--color-text);
 }
 
-.categories-list__swatch {
-  width: 1rem;
-  height: 1rem;
-  border-radius: var(--radius-sm);
+.categories-list__pill {
+  flex: 1;
+  min-width: 0;
+}
+
+.categories-list__delete {
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xs);
+  font-family: inherit;
+  border: none;
+  border-radius: 0;
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.categories-list__delete-icon {
+  display: block;
+}
+
+.categories-list__delete:hover {
+  color: var(--color-text);
+}
+
+.categories-list__delete:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
 }
 
 .auth-form__password-wrap {
@@ -560,8 +669,9 @@ body {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   min-height: 120px;
+  flex: 1;
   transition: background-color 0.2s, box-shadow 0.2s;
 }
 
@@ -569,6 +679,27 @@ body {
   background-color: var(--color-surface-hover);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-neu-inset-sm);
+}
+
+.kanban__add-btn {
+  flex-shrink: 0;
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--color-text-muted);
+  background-color: var(--color-bg);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: color 0.15s, background-color 0.15s, border-color 0.15s;
+}
+
+.kanban__add-btn:hover {
+  color: var(--color-text);
+  background-color: var(--color-surface-hover);
+  border-color: var(--color-text-muted);
 }
 
 /* Add-todo form: full-width bar above Kanban */
@@ -579,11 +710,11 @@ body {
   width: 100%;
 }
 
-/* Text input: inset neumorphic */
+/* Text input: inset neumorphic; width matches first kanban column (240px) for alignment */
 .todo-form__input {
   flex: 0 1 auto;
   width: 100%;
-  max-width: 380px;
+  max-width: 240px;
   min-width: 0;
   padding: var(--space-sm) var(--space-md);
   font-size: var(--font-size-base);
@@ -604,24 +735,25 @@ body {
   box-shadow: var(--shadow-neu-inset), 0 0 0 2px var(--color-border-focus);
 }
 
-/* Add button: raised neumorphic, inset on active */
+/* Add button: subtle, blends with form */
 .todo-form__submit {
   flex-shrink: 0;
-  padding: 0.75rem 1.75rem;
-  font-size: var(--font-size-lg);
-  font-weight: 600;
+  padding: 0.5rem 1.25rem;
+  font-size: var(--font-size-base);
+  font-weight: 500;
   font-family: inherit;
   border-radius: var(--radius-full);
   border: none;
-  background-color: var(--color-accent);
-  color: var(--color-surface);
+  background-color: var(--color-surface);
+  color: var(--color-text-muted);
   cursor: pointer;
   box-shadow: var(--shadow-neu-raised-sm);
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  transition: color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .todo-form__submit:hover {
-  background-color: var(--color-accent-hover);
+  color: var(--color-text);
+  background-color: var(--color-surface-hover);
 }
 
 .todo-form__submit:active {
@@ -639,12 +771,25 @@ body {
 }
 
 /* Single todo row: raised neumorphic card */
+/* Visually hidden but available to screen readers */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .todo-item {
   display: flex;
   flex-direction: column;
   align-items: stretch;
   gap: 0;
-  padding: var(--space-md) var(--space-lg);
+  padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-lg);
   border: none;
   background-color: var(--color-surface);
@@ -652,17 +797,17 @@ body {
   transition: box-shadow 0.2s, background-color 0.2s;
 }
 
-/* View: vertical stack; header has importance pill top-right; relative for delete X */
+/* View: vertical stack; relative for delete X */
 .todo-item__view {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: var(--space-sm);
+  gap: var(--space-xs);
   min-width: 0;
 }
 
-/* Top row: importance pill only (top left) */
+/* Top row (empty: hidden so no extra gap) */
 .todo-item__header {
   display: flex;
   justify-content: flex-start;
@@ -671,50 +816,38 @@ body {
   min-height: 1.5rem;
 }
 
+.todo-item__header:empty {
+  display: none;
+  min-height: 0;
+}
+
+/* Importance: subtle left-edge accent (same semantic colors as before) */
+.todo-item--importance-high {
+  border-left: 4px solid #9a3a3a;
+}
+
+.todo-item--importance-medium {
+  border-left: 4px solid #7a6020;
+}
+
+.todo-item--importance-low {
+  border-left: 4px solid #3a6080;
+}
+
 .todo-item__category-pill {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text);
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--radius-full);
+  font-size: 0.6875rem;
+  font-weight: var(--font-weight-normal);
   flex-shrink: 0;
   max-width: 8rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  opacity: 0.9;
 }
 
-.todo-item__importance-pill {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
-  padding: var(--space-xs) var(--space-md);
-  border-radius: var(--radius-full);
-  flex-shrink: 0;
-  min-width: 4rem;
-  text-align: center;
-  background-color: var(--color-surface-hover);
-  color: var(--color-text-muted);
-  box-shadow: var(--shadow-neu-inset-sm);
-}
-
-.todo-item__importance-pill--high {
-  background-color: rgba(196, 80, 80, 0.2);
-  color: #9a3a3a;
-}
-
-.todo-item__importance-pill--medium {
-  background-color: rgba(180, 140, 60, 0.25);
-  color: #7a6020;
-}
-
-.todo-item__importance-pill--low {
-  background-color: rgba(100, 140, 180, 0.2);
-  color: #3a6080;
-}
-
-/* Due date: secondary info below task name */
+/* Due date: secondary info below task name (tighter to task text) */
 .todo-item__due {
-  font-size: var(--font-size-sm);
+  font-size: 0.7rem;
   color: var(--color-text-muted);
   margin: 0;
   padding: 0;
@@ -759,14 +892,14 @@ body {
   min-width: 0;
   display: flex;
   align-items: center;
-  padding: var(--space-xs) 0;
+  padding: 0;
 }
 
 /* Todo label text: primary info, most prominent; click to edit inline */
 .todo-item__text {
   flex: 1;
   min-width: 0;
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-tight);
   color: var(--color-text);
@@ -783,7 +916,7 @@ body {
   width: 100%;
   min-width: 0;
   padding: var(--space-xs) var(--space-sm);
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-tight);
   font-family: inherit;
@@ -804,13 +937,13 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-xs);
   flex-wrap: wrap;
 }
 
 .todo-item__edit {
   margin-left: auto;
-  padding: var(--space-xs) var(--space-sm);
+  padding: 2px var(--space-sm);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
   font-family: inherit;

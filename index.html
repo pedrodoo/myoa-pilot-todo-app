@@ -17,7 +17,10 @@
     <div id="app">
       <header class="todo-app__header">
         <div class="todo-app__header-left">
-          <h1 class="todo-app__title">Todo -iiism</h1>
+          <div class="todo-app__header-top">
+            <h1 class="todo-app__title">Todo -iiism</h1>
+            <div id="auth-block" class="auth-block" aria-live="polite"></div>
+          </div>
           <div class="todo-filters" id="todo-filters" aria-label="Filter and sort tasks">
             <label class="todo-filters__label">Sort by
               <select id="filter-sort-by" class="todo-filters__select" aria-label="Sort by">
@@ -47,11 +50,8 @@
             <select id="filter-category" class="todo-filters__select todo-filters__select--category" aria-label="Category filter" hidden>
               <option value="">Select category</option>
             </select>
+            <button type="button" id="manage-categories-btn" class="todo-filters__manage-btn">Manage categories</button>
           </div>
-          <button type="button" id="manage-categories-btn" class="todo-filters__manage-btn">Manage categories</button>
-        </div>
-        <div id="auth-block" class="auth-block" aria-live="polite">
-          <!-- Filled by main.js: guest (Create account / Sign in) or signed-in (email + Sign out) -->
         </div>
       </header>
         <!-- Auth modals (hidden by default) -->
@@ -96,6 +96,10 @@
           <h2 id="add-todo-modal-title" class="auth-modal__title">Add todo</h2>
           <p id="add-todo-modal-text" class="add-todo-modal__text"></p>
           <form id="add-todo-modal-form" class="auth-form add-todo-modal__form">
+            <div class="auth-form__label">
+              Task
+              <input type="text" id="add-todo-modal-task" class="auth-form__input" placeholder="Task description" aria-label="Task description" />
+            </div>
             <div class="auth-form__label">
               Importance
               <select id="add-todo-modal-importance" class="auth-form__input">
@@ -176,17 +180,23 @@
         </div>
         <!-- Categories modal: add category, list categories -->
         <div id="categories-modal-backdrop" class="auth-modal-backdrop" hidden aria-hidden="true"></div>
-        <div id="categories-modal" class="auth-modal" role="dialog" aria-labelledby="categories-modal-title" hidden aria-hidden="true">
-          <h2 id="categories-modal-title" class="auth-modal__title">Manage categories</h2>
-          <form id="categories-form" class="auth-form">
-            <label class="auth-form__label">Name <input type="text" id="category-name" class="auth-form__input" placeholder="Category name" /></label>
-            <label class="auth-form__label">Color <input type="color" id="category-color" class="auth-form__input auth-form__input--color" value="#10b981" /></label>
+        <div id="categories-modal" class="auth-modal add-todo-modal" role="dialog" aria-labelledby="categories-modal-title" hidden aria-hidden="true">
+          <div class="auth-modal__header auth-modal__header--with-close">
+            <h2 id="categories-modal-title" class="auth-modal__title">Manage categories</h2>
+            <button type="button" id="categories-modal-close" class="auth-modal__close" aria-label="Close">
+              <svg class="auth-modal__close-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+          </div>
+          <form id="categories-form" class="auth-form add-todo-modal__form">
+            <div class="categories-form__row">
+              <label class="auth-form__label categories-form__name-label">Name <input type="text" id="category-name" class="auth-form__input" placeholder="Category name" /></label>
+              <label class="auth-form__label categories-form__color-label">Color <input type="color" id="category-color" class="auth-form__input auth-form__input--color" value="#10b981" /></label>
+            </div>
             <div class="auth-form__actions">
               <button type="submit" class="auth-form__submit">Add category</button>
             </div>
           </form>
           <ul id="categories-list" class="categories-list" aria-label="Your categories"></ul>
-          <button type="button" id="categories-modal-close" class="auth-form__cancel">Close</button>
         </div>
         <!-- Add-todo bar: full width above the Kanban -->
         <form class="todo-form" id="todo-form" aria-label="Add todo">
@@ -206,18 +216,22 @@
           <div class="kanban__column" data-status="tasks" id="kanban-column-tasks">
             <h2 class="kanban__column-title">Inbox</h2>
             <ul class="kanban__list" id="kanban-list-tasks" aria-label="Inbox column"></ul>
+            <button type="button" class="kanban__add-btn" data-add-to-status="tasks" aria-label="Add task to Inbox">+</button>
           </div>
           <div class="kanban__column" data-status="to_do" id="kanban-column-to_do">
             <h2 class="kanban__column-title">To do</h2>
             <ul class="kanban__list" id="kanban-list-to_do" aria-label="To do column"></ul>
+            <button type="button" class="kanban__add-btn" data-add-to-status="to_do" aria-label="Add task to To do">+</button>
           </div>
           <div class="kanban__column" data-status="doing" id="kanban-column-doing">
             <h2 class="kanban__column-title">Doing</h2>
             <ul class="kanban__list" id="kanban-list-doing" aria-label="Doing column"></ul>
+            <button type="button" class="kanban__add-btn" data-add-to-status="doing" aria-label="Add task to Doing">+</button>
           </div>
           <div class="kanban__column" data-status="completed" id="kanban-column-completed">
             <h2 class="kanban__column-title">Completed</h2>
             <ul class="kanban__list" id="kanban-list-completed" aria-label="Completed column"></ul>
+            <button type="button" class="kanban__add-btn" data-add-to-status="completed" aria-label="Add task to Completed">+</button>
           </div>
         </div>
     </div>
