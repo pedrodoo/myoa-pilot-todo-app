@@ -49,11 +49,19 @@ export function addTodo(text, options = {}) {
 }
 
 /**
- * Updates the todo with the given id. patch: { importance?, dueDate?, category?, status? }.
+ * Returns the todo with the given id, or undefined.
+ */
+export function getTodo(id) {
+  return todos.find((t) => t.id === id);
+}
+
+/**
+ * Updates the todo with the given id. patch: { text?, importance?, dueDate?, category?, status? }.
  */
 export function updateTodo(id, patch) {
   const todo = todos.find((t) => t.id === id);
   if (!todo) return;
+  if (patch.hasOwnProperty('text')) todo.text = patch.text != null ? String(patch.text).trim() : todo.text;
   if (patch.hasOwnProperty('importance')) todo.importance = patch.importance && ['high', 'medium', 'low'].includes(patch.importance) ? patch.importance : null;
   if (patch.hasOwnProperty('dueDate')) todo.dueDate = patch.dueDate && String(patch.dueDate).trim() ? String(patch.dueDate).slice(0, 10) : null;
   if (patch.hasOwnProperty('category')) todo.category = patch.category && String(patch.category).trim() ? String(patch.category).trim() : null;
@@ -198,8 +206,10 @@ function createTodoCardElement(todo, categories) {
 
   li.innerHTML = `
     <div class="todo-item__view">
+      <button type="button" class="todo-item__delete todo-item__delete--x" data-action="delete" aria-label="Delete">
+        <svg class="todo-item__delete-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
       <div class="todo-item__header">
-        ${categoryColor ? `<span class="todo-item__category-pill" style="background-color:${escapeHtml(categoryColor)}">${escapeHtml(todo.category)}</span>` : ''}
         ${importanceLabel ? `<span class="todo-item__importance-pill todo-item__importance-pill--${todo.importance}">${escapeHtml(importanceLabel)}</span>` : ''}
       </div>
       <div class="todo-item__row">
@@ -207,34 +217,8 @@ function createTodoCardElement(todo, categories) {
       </div>
       ${dueLabel ? `<p class="todo-item__due ${isOverdue ? 'todo-item__due--overdue' : ''}">${escapeHtml(dueLabel)}</p>` : ''}
       <div class="todo-item__actions">
+        ${categoryColor ? `<span class="todo-item__category-pill" style="background-color:${escapeHtml(categoryColor)}">${escapeHtml(todo.category)}</span>` : ''}
         <button type="button" class="todo-item__edit" data-action="edit" aria-label="Edit">Edit</button>
-        <button type="button" class="todo-item__move" data-action="move" aria-label="Move to column" aria-haspopup="true">Move</button>
-        <button type="button" class="todo-item__delete" data-action="delete" aria-label="Delete">
-          <svg class="todo-item__delete-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-        </button>
-      </div>
-    </div>
-    <div class="todo-item__edit-form" hidden>
-      <label class="todo-item__edit-label">Importance
-        <select class="todo-item__edit-importance" data-edit-field="importance">
-          <option value="" ${!todo.importance ? 'selected' : ''}>None</option>
-          <option value="high" ${todo.importance === 'high' ? 'selected' : ''}>High</option>
-          <option value="medium" ${todo.importance === 'medium' ? 'selected' : ''}>Medium</option>
-          <option value="low" ${todo.importance === 'low' ? 'selected' : ''}>Low</option>
-        </select>
-      </label>
-      <label class="todo-item__edit-label">Due date
-        <input type="date" class="todo-item__edit-due" data-edit-field="dueDate" value="${todo.dueDate || ''}" />
-      </label>
-      <label class="todo-item__edit-label">Category
-        <select class="todo-item__edit-category" data-edit-field="category">
-          <option value="">None</option>
-          ${categoryOptionsHtml}
-        </select>
-      </label>
-      <div class="todo-item__edit-actions">
-        <button type="button" class="todo-item__edit-save" data-action="edit-save">Save</button>
-        <button type="button" class="todo-item__edit-cancel" data-action="edit-cancel">Cancel</button>
       </div>
     </div>
   `;

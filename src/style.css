@@ -118,7 +118,7 @@ body {
 /* Wraps the todo app; wider for Kanban (four columns), horizontal padding */
 #app {
   width: 100%;
-  max-width: 920px;
+  max-width: 1160px;
   margin: 0 auto;
   padding: var(--space-xl);
   text-align: left;
@@ -354,6 +354,17 @@ body {
   margin-bottom: var(--space-sm);
 }
 
+/* Delete confirm dialog: message + Yes / Cancel */
+.delete-confirm-modal .auth-modal__message {
+  margin-bottom: var(--space-lg);
+}
+
+.delete-confirm__actions {
+  display: flex;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
 /* Categories modal list */
 .categories-list {
   list-style: none;
@@ -512,15 +523,6 @@ body {
   box-shadow: var(--shadow-neu-pressed);
 }
 
-/* Main content as raised neumorphic card */
-.todo-app {
-  width: 100%;
-  padding: var(--space-xl);
-  border-radius: var(--radius-xl);
-  background-color: var(--color-surface);
-  box-shadow: var(--shadow-neu-raised);
-}
-
 /* Kanban board: four columns in a row */
 .kanban {
   display: flex;
@@ -531,8 +533,8 @@ body {
 }
 
 .kanban__column {
-  flex: 0 0 200px;
-  min-width: 200px;
+  flex: 0 0 240px;
+  min-width: 240px;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -544,6 +546,7 @@ body {
 }
 
 .kanban__column-title {
+  font-family: "Corben", Georgia, serif;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-muted);
@@ -568,16 +571,19 @@ body {
   box-shadow: var(--shadow-neu-inset-sm);
 }
 
-/* Add-todo form: inside Tasks column */
+/* Add-todo form: full-width bar above Kanban */
 .todo-form {
   display: flex;
   gap: var(--space-sm);
-  margin-bottom: var(--space-sm);
+  margin-bottom: var(--space-lg);
+  width: 100%;
 }
 
 /* Text input: inset neumorphic */
 .todo-form__input {
-  flex: 1;
+  flex: 0 1 auto;
+  width: 100%;
+  max-width: 380px;
   min-width: 0;
   padding: var(--space-sm) var(--space-md);
   font-size: var(--font-size-base);
@@ -646,8 +652,9 @@ body {
   transition: box-shadow 0.2s, background-color 0.2s;
 }
 
-/* View: vertical stack; header has importance pill top-right */
+/* View: vertical stack; header has importance pill top-right; relative for delete X */
 .todo-item__view {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -655,10 +662,10 @@ body {
   min-width: 0;
 }
 
-/* Top row: category (left), importance pill (top right) */
+/* Top row: importance pill only (top left) */
 .todo-item__header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: flex-start;
   gap: var(--space-sm);
   min-height: 1.5rem;
@@ -680,9 +687,11 @@ body {
 .todo-item__importance-pill {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
-  padding: var(--space-xs) var(--space-sm);
+  padding: var(--space-xs) var(--space-md);
   border-radius: var(--radius-full);
   flex-shrink: 0;
+  min-width: 4rem;
+  text-align: center;
   background-color: var(--color-surface-hover);
   color: var(--color-text-muted);
   box-shadow: var(--shadow-neu-inset-sm);
@@ -753,7 +762,7 @@ body {
   padding: var(--space-xs) 0;
 }
 
-/* Todo label text: primary info, most prominent */
+/* Todo label text: primary info, most prominent; click to edit inline */
 .todo-item__text {
   flex: 1;
   min-width: 0;
@@ -761,17 +770,46 @@ body {
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-tight);
   color: var(--color-text);
+  cursor: text;
 }
 
-/* Actions row: Edit + Delete in a row */
+.todo-item__text-input-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+
+.todo-item__text-input {
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  font-family: inherit;
+  color: var(--color-text);
+  border: none;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg);
+  box-shadow: var(--shadow-neu-inset-sm);
+}
+
+.todo-item__text-input:focus {
+  outline: none;
+  box-shadow: var(--shadow-neu-inset-sm), 0 0 0 2px var(--color-border-focus);
+}
+
+/* Actions row: category pill (left) and Edit button (right) */
 .todo-item__actions {
   display: flex;
+  justify-content: space-between;
   align-items: center;
   gap: var(--space-sm);
   flex-wrap: wrap;
 }
 
 .todo-item__edit {
+  margin-left: auto;
   padding: var(--space-xs) var(--space-sm);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
@@ -789,25 +827,7 @@ body {
   color: var(--color-text);
 }
 
-.todo-item__move {
-  padding: var(--space-xs) var(--space-sm);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
-  font-family: inherit;
-  border-radius: var(--radius-md);
-  border: none;
-  background-color: var(--color-surface);
-  color: var(--color-text-muted);
-  cursor: pointer;
-  box-shadow: var(--shadow-neu-inset-sm);
-  transition: color 0.2s;
-}
-
-.todo-item__move:hover {
-  color: var(--color-text);
-}
-
-/* Delete button: icon only, danger color, inverts on hover */
+/* Delete button: X in top-right of card, icon only (no pill) */
 .todo-item__delete {
   flex-shrink: 0;
   display: inline-flex;
@@ -815,13 +835,21 @@ body {
   justify-content: center;
   padding: var(--space-sm);
   font-family: inherit;
-  border-radius: var(--radius-md);
+  border-radius: 0;
   border: none;
-  background-color: var(--color-surface);
-  color: var(--color-danger);
+  background: none;
+  color: var(--color-text-muted);
   cursor: pointer;
-  box-shadow: var(--shadow-neu-raised-sm);
-  transition: box-shadow 0.2s, background-color 0.2s, color 0.2s;
+  box-shadow: none;
+  transition: color 0.2s, background-color 0.2s;
+}
+
+/* X button: positioned top-right of the card */
+.todo-item__delete--x {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: var(--space-xs);
 }
 
 .todo-item__delete-icon {
@@ -829,13 +857,12 @@ body {
 }
 
 .todo-item__delete:hover {
-  background-color: var(--color-danger);
-  color: var(--color-surface);
-  box-shadow: var(--shadow-neu-raised-sm);
+  background-color: transparent;
+  color: var(--color-text);
 }
 
 .todo-item__delete:active {
-  box-shadow: var(--shadow-neu-pressed);
+  background-color: transparent;
 }
 
 .todo-item__delete:focus-visible {

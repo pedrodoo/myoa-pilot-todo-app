@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Ultra&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Corben:wght@400;700&display=swap" rel="stylesheet" />
     <title>Todo -iiism</title>
   </head>
   <body>
@@ -53,7 +54,6 @@
           <!-- Filled by main.js: guest (Create account / Sign in) or signed-in (email + Sign out) -->
         </div>
       </header>
-      <div class="todo-app">
         <!-- Auth modals (hidden by default) -->
         <div id="auth-modal-backdrop" class="auth-modal-backdrop" hidden aria-hidden="true"></div>
         <div id="auth-modal" class="auth-modal" role="dialog" aria-labelledby="auth-modal-title" hidden aria-hidden="true">
@@ -121,6 +121,59 @@
             </div>
           </form>
         </div>
+        <!-- Edit todo modal: text, importance, due date, category, move to column -->
+        <div id="edit-todo-modal-backdrop" class="auth-modal-backdrop" hidden aria-hidden="true"></div>
+        <div id="edit-todo-modal" class="auth-modal add-todo-modal" role="dialog" aria-labelledby="edit-todo-modal-title" hidden aria-hidden="true">
+          <h2 id="edit-todo-modal-title" class="auth-modal__title">Edit todo</h2>
+          <form id="edit-todo-modal-form" class="auth-form add-todo-modal__form">
+            <div class="auth-form__label">
+              Task
+              <input type="text" id="edit-todo-modal-text" class="auth-form__input" placeholder="Task description" />
+            </div>
+            <div class="auth-form__label">
+              Importance
+              <select id="edit-todo-modal-importance" class="auth-form__input">
+                <option value="">None</option>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+            <div class="auth-form__label">
+              Due date
+              <input type="date" id="edit-todo-modal-due-date" class="auth-form__input" />
+            </div>
+            <div class="auth-form__label">
+              Category
+              <select id="edit-todo-modal-category" class="auth-form__input">
+                <option value="">None</option>
+              </select>
+            </div>
+            <div class="auth-form__label">
+              Move to column
+              <select id="edit-todo-modal-status" class="auth-form__input">
+                <option value="tasks">Inbox</option>
+                <option value="to_do">To do</option>
+                <option value="doing">Doing</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+            <div class="auth-form__actions">
+              <button type="submit" class="auth-form__submit">Save</button>
+              <button type="button" id="edit-todo-modal-cancel" class="auth-form__cancel">Cancel</button>
+            </div>
+          </form>
+        </div>
+        <!-- Delete confirm dialog -->
+        <div id="delete-confirm-backdrop" class="auth-modal-backdrop" hidden aria-hidden="true"></div>
+        <div id="delete-confirm-modal" class="auth-modal delete-confirm-modal" role="dialog" aria-labelledby="delete-confirm-title" aria-modal="true" hidden aria-hidden="true">
+          <h2 id="delete-confirm-title" class="auth-modal__title">Delete card</h2>
+          <p id="delete-confirm-message" class="auth-modal__message">Are you sure you want to delete this card?</p>
+          <div class="delete-confirm__actions">
+            <button type="button" id="delete-confirm-yes" class="auth-form__submit">Yes</button>
+            <button type="button" id="delete-confirm-cancel" class="auth-form__cancel">Cancel</button>
+          </div>
+        </div>
         <!-- Categories modal: add category, list categories -->
         <div id="categories-modal-backdrop" class="auth-modal-backdrop" hidden aria-hidden="true"></div>
         <div id="categories-modal" class="auth-modal" role="dialog" aria-labelledby="categories-modal-title" hidden aria-hidden="true">
@@ -135,23 +188,24 @@
           <ul id="categories-list" class="categories-list" aria-label="Your categories"></ul>
           <button type="button" id="categories-modal-close" class="auth-form__cancel">Close</button>
         </div>
-        <!-- Kanban board: four columns (Tasks | To do | Doing | Completed) -->
+        <!-- Add-todo bar: full width above the Kanban -->
+        <form class="todo-form" id="todo-form" aria-label="Add todo">
+          <input
+            type="text"
+            class="todo-form__input"
+            id="todo-input"
+            name="todo"
+            placeholder="What needs to be done?"
+            autocomplete="off"
+            aria-label="Todo description"
+          />
+          <button type="submit" class="todo-form__submit">Add to inbox</button>
+        </form>
+        <!-- Kanban board: four columns (Inbox | To do | Doing | Completed) -->
         <div class="kanban" id="kanban" role="application" aria-label="Kanban board">
           <div class="kanban__column" data-status="tasks" id="kanban-column-tasks">
-            <h2 class="kanban__column-title">Tasks</h2>
-            <form class="todo-form" id="todo-form" aria-label="Add todo">
-              <input
-                type="text"
-                class="todo-form__input"
-                id="todo-input"
-                name="todo"
-                placeholder="What needs to be done?"
-                autocomplete="off"
-                aria-label="Todo description"
-              />
-              <button type="submit" class="todo-form__submit">Add</button>
-            </form>
-            <ul class="kanban__list" id="kanban-list-tasks" aria-label="Tasks column"></ul>
+            <h2 class="kanban__column-title">Inbox</h2>
+            <ul class="kanban__list" id="kanban-list-tasks" aria-label="Inbox column"></ul>
           </div>
           <div class="kanban__column" data-status="to_do" id="kanban-column-to_do">
             <h2 class="kanban__column-title">To do</h2>
@@ -166,7 +220,6 @@
             <ul class="kanban__list" id="kanban-list-completed" aria-label="Completed column"></ul>
           </div>
         </div>
-      </div>
     </div>
     <!-- Toast for transient messages (e.g. signed in) -->
     <div id="toast" class="toast" role="status" aria-live="polite" hidden aria-hidden="true"></div>

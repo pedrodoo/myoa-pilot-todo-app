@@ -3,7 +3,7 @@
    ───────────────────────────────────────────────────────────────────────────── */
 import './style.css'
 import { supabase } from './supabase.js'
-import { renderKanbanBoard, setTodosFromDb, updateTodo, setTodoStatus } from './todos.js'
+import { renderKanbanBoard, setTodosFromDb, updateTodo, setTodoStatus, getTodo } from './todos.js'
 
 /* ─────────────────────────────────────────────────────────────────────────────
    UI COPY & LABELS (designer-editable)
@@ -61,6 +61,10 @@ const COPY = {
   },
   // Todo list
   deleteConfirm: 'Delete this item?',
+  deleteConfirmTitle: 'Delete card',
+  deleteConfirmMessage: 'Are you sure you want to delete this card?',
+  deleteConfirmYes: 'Yes',
+  deleteConfirmCancel: 'Cancel',
   importance: 'Importance',
   dueDate: 'Due date',
   category: 'Category',
@@ -153,9 +157,27 @@ const categoriesForm = document.getElementById('categories-form')
 const categoryNameInput = document.getElementById('category-name')
 const categoryColorInput = document.getElementById('category-color')
 const categoriesListEl = document.getElementById('categories-list')
+const editTodoModal = document.getElementById('edit-todo-modal')
+const editTodoModalBackdrop = document.getElementById('edit-todo-modal-backdrop')
+const editTodoModalForm = document.getElementById('edit-todo-modal-form')
+const editTodoModalText = document.getElementById('edit-todo-modal-text')
+const editTodoModalImportance = document.getElementById('edit-todo-modal-importance')
+const editTodoModalDueDate = document.getElementById('edit-todo-modal-due-date')
+const editTodoModalCategory = document.getElementById('edit-todo-modal-category')
+const editTodoModalStatus = document.getElementById('edit-todo-modal-status')
+const editTodoModalCancel = document.getElementById('edit-todo-modal-cancel')
+const deleteConfirmBackdrop = document.getElementById('delete-confirm-backdrop')
+const deleteConfirmModal = document.getElementById('delete-confirm-modal')
+const deleteConfirmTitle = document.getElementById('delete-confirm-title')
+const deleteConfirmMessage = document.getElementById('delete-confirm-message')
+const deleteConfirmYes = document.getElementById('delete-confirm-yes')
+const deleteConfirmCancel = document.getElementById('delete-confirm-cancel')
 
 // Toast (floating message)
 const toastEl = document.getElementById('toast')
+
+/** Id of the todo to delete when user confirms in the delete-confirm modal. */
+let pendingDeleteId = null
 
 /** Current auth modal mode. Determines title, submit label, and which form rows are visible. */
 let authModalMode = 'signin'
@@ -171,6 +193,9 @@ let filterValue = null
 
 /** Pending todo text when add-todo modal is open (user clicked Add with text, modal sets options). */
 let pendingAddTodoText = null
+
+/** Id of the todo being edited in the edit-todo modal. */
+let editingTodoId = null
 
 /* ─────────────────────────────────────────────────────────────────────────────
    AUTH BLOCK (header)
@@ -563,6 +588,11 @@ function populateCategoryDropdowns() {
     addTodoModalCategory.innerHTML = '<option value="">None</option>' + options
     if (categories.some((c) => c.name === current)) addTodoModalCategory.value = current
   }
+  if (editTodoModalCategory) {
+    const current = editTodoModalCategory.value
+    editTodoModalCategory.innerHTML = '<option value="">None</option>' + options
+    if (categories.some((c) => c.name === current)) editTodoModalCategory.value = current
+  }
   if (filterCategory) {
     const current = filterCategory.value
     filterCategory.innerHTML = '<option value="">Select category</option>' + options
@@ -645,62 +675,6 @@ async function moveTodoToStatus(id, newStatus) {
   }
   setTodoStatus(id, newStatus)
   applyFilterSortAndRender()
-}
-
-const MOVE_MENU_STATUSES = [
-  { value: 'tasks', label: 'Tasks' },
-  { value: 'to_do', label: 'To do' },
-  { value: 'doing', label: 'Doing' },
-  { value: 'completed', label: 'Completed' },
-]
-
-function openMoveMenu(li, id) {
-  const existing = document.getElementById('move-menu')
-  if (existing) existing.remove()
-
-  const menu = document.createElement('div')
-  menu.id = 'move-menu'
-  menu.setAttribute('role', 'menu')
-  menu.setAttribute('aria-label', 'Move to column')
-  menu.className = 'move-menu'
-
-  const moveBtn = li.querySelector('[data-action="move"]')
-  const rect = moveBtn ? moveBtn.getBoundingClientRect() : li.getBoundingClientRect()
-
-  for (const { value, label } of MOVE_MENU_STATUSES) {
-    const btn = document.createElement('button')
-    btn.type = 'button'
-    btn.setAttribute('role', 'menuitem')
-    btn.className = 'move-menu__item'
-    btn.textContent = label
-    btn.addEventListener('click', () => {
-      moveTodoToStatus(id, value)
-      closeMoveMenu()
-    })
-    menu.appendChild(btn)
-  }
-
-  document.body.appendChild(menu)
-  menu.style.position = 'fixed'
-  menu.style.left = `${rect.left}px`
-  menu.style.top = `${rect.bottom + 4}px`
-  menu.style.zIndex = '200'
-
-  const closeMoveMenu = () => {
-    menu.remove()
-    document.removeEventListener('click', closeOnOutside)
-    document.removeEventListener('keydown', closeOnEscape)
-  }
-  const closeOnOutside = (e) => {
-    if (!menu.contains(e.target) && !li.contains(e.target)) closeMoveMenu()
-  }
-  const closeOnEscape = (e) => {
-    if (e.key === 'Escape') closeMoveMenu()
-  }
-  document.addEventListener('click', closeOnOutside)
-  document.addEventListener('keydown', closeOnEscape)
-
-  requestAnimationFrame(() => menu.querySelector('button')?.focus())
 }
 
 // Drag-and-drop: cards draggable; column lists are drop targets
@@ -835,6 +809,87 @@ if (addTodoModalBackdrop) addTodoModalBackdrop.addEventListener('click', () => {
   closeAddTodoModal()
 })
 
+function openEditTodoModal(id) {
+  const todo = getTodo(id)
+  if (!todo || !editTodoModal || !editTodoModalBackdrop) return
+  editingTodoId = id
+  populateCategoryDropdowns()
+  if (editTodoModalText) editTodoModalText.value = todo.text
+  if (editTodoModalImportance) editTodoModalImportance.value = todo.importance || ''
+  if (editTodoModalDueDate) editTodoModalDueDate.value = todo.dueDate || ''
+  if (editTodoModalCategory) editTodoModalCategory.value = todo.category || ''
+  if (editTodoModalStatus) editTodoModalStatus.value = todo.status || 'tasks'
+  editTodoModal.hidden = false
+  editTodoModal.setAttribute('aria-hidden', 'false')
+  editTodoModalBackdrop.hidden = false
+  editTodoModalBackdrop.setAttribute('aria-hidden', 'false')
+  if (editTodoModalText) editTodoModalText.focus()
+}
+
+function closeEditTodoModal() {
+  if (!editTodoModal || !editTodoModalBackdrop) return
+  editTodoModal.hidden = true
+  editTodoModal.setAttribute('aria-hidden', 'true')
+  editTodoModalBackdrop.hidden = true
+  editTodoModalBackdrop.setAttribute('aria-hidden', 'true')
+  editingTodoId = null
+}
+
+if (editTodoModalForm) {
+  editTodoModalForm.addEventListener('submit', async (e) => {
+    e.preventDefault?.()
+    if (!editingTodoId || !supabase) return
+    const user = await getCurrentUser()
+    if (!user) return
+    const text = editTodoModalText?.value?.trim() ?? ''
+    const importance = editTodoModalImportance?.value?.trim() || null
+    const dueDate = editTodoModalDueDate?.value?.trim() || null
+    const category = editTodoModalCategory?.value?.trim() || null
+    const status = editTodoModalStatus?.value?.trim() || 'tasks'
+    let result = await supabase
+      .from('todos')
+      .update({
+        text: text || getTodo(editingTodoId)?.text,
+        importance,
+        due_date: dueDate || null,
+        category,
+        status,
+        is_complete: status === 'completed',
+      })
+      .eq('id', editingTodoId)
+      .eq('user_id', user.id)
+    if (result.error && (result.error.message || '').includes('status') && (result.error.message || '').includes('does not exist')) {
+      result = await supabase
+        .from('todos')
+        .update({
+          text: text || getTodo(editingTodoId)?.text,
+          importance,
+          due_date: dueDate || null,
+          category,
+          is_complete: status === 'completed',
+        })
+        .eq('id', editingTodoId)
+        .eq('user_id', user.id)
+    }
+    if (result.error) {
+      console.error('Failed to update todo:', result.error)
+      return
+    }
+    const finalText = text || getTodo(editingTodoId)?.text
+    updateTodo(editingTodoId, {
+      text: finalText,
+      importance,
+      dueDate: dueDate || null,
+      category,
+      status,
+    })
+    closeEditTodoModal()
+    applyFilterSortAndRender()
+  })
+}
+if (editTodoModalCancel) editTodoModalCancel.addEventListener('click', closeEditTodoModal)
+if (editTodoModalBackdrop) editTodoModalBackdrop.addEventListener('click', closeEditTodoModal)
+
 // Filter/sort: update state and re-render (within-column order only)
 if (filterSortBy) {
   filterSortBy.addEventListener('change', () => {
@@ -859,6 +914,71 @@ if (filterCategory) {
   filterCategory.addEventListener('change', () => applyFilterSortAndRender())
 }
 
+// Inline edit: click on todo text replaces it with an input; blur/Enter saves, Escape cancels
+;(kanbanEl || document).addEventListener('click', (e) => {
+  const textEl = e.target.closest('.todo-item__text')
+  if (!textEl || textEl.closest('.todo-item__text-input-wrap')) return
+  const li = textEl.closest('.todo-item')
+  if (!li?.dataset?.id) return
+  if (li.querySelector('.todo-item__text-input')) return
+  const id = li.dataset.id
+  const currentText = textEl.textContent || ''
+  const row = textEl.closest('.todo-item__row')
+  if (!row) return
+  const wrap = document.createElement('div')
+  wrap.className = 'todo-item__text-input-wrap'
+  const input = document.createElement('input')
+  input.type = 'text'
+  input.className = 'todo-item__text-input'
+  input.value = currentText
+  input.setAttribute('aria-label', 'Edit task')
+  wrap.appendChild(input)
+  textEl.replaceWith(wrap)
+  input.focus()
+  input.select()
+
+  let committed = false
+  function commit() {
+    if (committed) return
+    committed = true
+    const newText = input.value.trim()
+    const finalText = newText || currentText
+    const span = document.createElement('span')
+    span.className = 'todo-item__text'
+    span.textContent = finalText
+    wrap.replaceWith(span)
+    if (finalText !== currentText) {
+      updateTodo(id, { text: finalText })
+      if (id && supabase) {
+        getCurrentUser().then((user) => {
+          if (!user) return
+          supabase.from('todos').update({ text: finalText }).eq('id', id).eq('user_id', user.id)
+        })
+      }
+    }
+  }
+
+  function cancel() {
+    if (committed) return
+    committed = true
+    const span = document.createElement('span')
+    span.className = 'todo-item__text'
+    span.textContent = currentText
+    wrap.replaceWith(span)
+  }
+
+  input.addEventListener('blur', commit, { once: true })
+  input.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') {
+      ev.preventDefault()
+      commit()
+    } else if (ev.key === 'Escape') {
+      ev.preventDefault()
+      cancel()
+    }
+  })
+})
+
 // Delegate card actions from Kanban (cards live in any column list)
 ;(kanbanEl || document).addEventListener('click', async (e) => {
   const li = e.target.closest('.todo-item')
@@ -868,70 +988,49 @@ if (filterCategory) {
 
   if (action === 'edit') {
     e.preventDefault()
-    const view = li.querySelector('.todo-item__view')
-    const editForm = li.querySelector('.todo-item__edit-form')
-    if (view && editForm) {
-      view.hidden = true
-      editForm.hidden = false
-    }
-    return
-  }
-
-  if (action === 'edit-cancel') {
-    e.preventDefault()
-    const view = li.querySelector('.todo-item__view')
-    const editForm = li.querySelector('.todo-item__edit-form')
-    if (view && editForm) {
-      view.hidden = false
-      editForm.hidden = true
-    }
-    return
-  }
-
-  if (action === 'edit-save') {
-    e.preventDefault()
-    if (!id || !supabase) return
-    const user = await getCurrentUser()
-    if (!user) return
-    const importanceEl = li.querySelector('.todo-item__edit-importance')
-    const dueEl = li.querySelector('.todo-item__edit-due')
-    const categoryEl = li.querySelector('.todo-item__edit-category')
-    const importance = importanceEl?.value?.trim() || null
-    const dueDate = dueEl?.value?.trim() || null
-    const category = categoryEl?.value?.trim() || null
-    const { error } = await supabase
-      .from('todos')
-      .update({ importance, due_date: dueDate || null, category })
-      .eq('id', id)
-      .eq('user_id', user.id)
-    if (error) {
-      console.error('Failed to update todo:', error)
-      return
-    }
-    updateTodo(id, { importance, dueDate: dueDate || null, category })
-    const view = li.querySelector('.todo-item__view')
-    const editForm = li.querySelector('.todo-item__edit-form')
-    if (view && editForm) {
-      view.hidden = false
-      editForm.hidden = true
-    }
-    applyFilterSortAndRender()
-    return
-  }
-
-  // Move (accessibility): handled below with move menu
-  if (action === 'move') {
-    e.preventDefault()
-    openMoveMenu(li, id)
+    openEditTodoModal(id)
     return
   }
 
   const deleteBtn = e.target.closest('.todo-item__delete')
   if (!deleteBtn) return
+  e.preventDefault()
   if (!id || !supabase) return
   const user = await getCurrentUser()
   if (!user) return
-  if (!confirm(COPY.deleteConfirm)) return
+  pendingDeleteId = id
+  if (deleteConfirmTitle) deleteConfirmTitle.textContent = COPY.deleteConfirmTitle
+  if (deleteConfirmMessage) deleteConfirmMessage.textContent = COPY.deleteConfirmMessage
+  if (deleteConfirmYes) deleteConfirmYes.textContent = COPY.deleteConfirmYes
+  if (deleteConfirmCancel) deleteConfirmCancel.textContent = COPY.deleteConfirmCancel
+  if (deleteConfirmBackdrop) {
+    deleteConfirmBackdrop.hidden = false
+    deleteConfirmBackdrop.removeAttribute('aria-hidden')
+  }
+  if (deleteConfirmModal) {
+    deleteConfirmModal.hidden = false
+    deleteConfirmModal.removeAttribute('aria-hidden')
+  }
+})
+
+function closeDeleteConfirmModal() {
+  pendingDeleteId = null
+  if (deleteConfirmBackdrop) {
+    deleteConfirmBackdrop.hidden = true
+    deleteConfirmBackdrop.setAttribute('aria-hidden', 'true')
+  }
+  if (deleteConfirmModal) {
+    deleteConfirmModal.hidden = true
+    deleteConfirmModal.setAttribute('aria-hidden', 'true')
+  }
+}
+
+async function confirmDeleteTodo() {
+  if (!pendingDeleteId || !supabase) return
+  const user = await getCurrentUser()
+  if (!user) return
+  const id = pendingDeleteId
+  closeDeleteConfirmModal()
   const { error } = await supabase
     .from('todos')
     .delete()
@@ -942,7 +1041,11 @@ if (filterCategory) {
     return
   }
   await loadAndRenderTodos()
-})
+}
+
+if (deleteConfirmYes) deleteConfirmYes.addEventListener('click', () => confirmDeleteTodo())
+if (deleteConfirmCancel) deleteConfirmCancel.addEventListener('click', closeDeleteConfirmModal)
+if (deleteConfirmBackdrop) deleteConfirmBackdrop.addEventListener('click', closeDeleteConfirmModal)
 
 /* ─────────────────────────────────────────────────────────────────────────────
    CATEGORIES MODAL
