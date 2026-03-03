@@ -378,6 +378,11 @@ body {
   min-height: 1.25em;
 }
 
+/* When message has content, use full contrast so feedback is always visible */
+.auth-modal__message:not(:empty) {
+  color: var(--color-text);
+}
+
 .auth-form__label {
   display: block;
   font-size: var(--font-size-sm);

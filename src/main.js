@@ -330,7 +330,15 @@ function closeAuthModal() {
 }
 
 function setAuthMessage(text) {
-  if (authModalMessage) authModalMessage.textContent = text
+  if (!authModalMessage) return
+  authModalMessage.textContent = text
+  if (text) {
+    authModalMessage.removeAttribute('hidden')
+    authModalMessage.setAttribute('aria-hidden', 'false')
+    authModalMessage.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  } else {
+    authModalMessage.setAttribute('aria-hidden', 'true')
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -472,7 +480,12 @@ function handleSignOut() {
 
 async function handleCreateAccount(email, password) {
   const msg = COPY.messages
-  const { data, error } = await supabase.auth.updateUser({ email })
+  const emailTrimmed = typeof email === 'string' ? email.trim() : ''
+  if (!emailTrimmed) {
+    setAuthMessage(msg.enterEmail)
+    return
+  }
+  const { data, error } = await supabase.auth.updateUser({ email: emailTrimmed })
   if (error) {
     if (error.status === 429 || error.message?.toLowerCase().includes('too many') || error.message?.toLowerCase().includes('rate limit')) {
       setAuthMessage(msg.rateLimit)
@@ -484,6 +497,10 @@ async function handleCreateAccount(email, password) {
       authModalTitle.textContent = COPY.modal.titles.signin
       authSubmit.textContent = COPY.modal.submitLabels.signin
       authPassword.required = true
+      return
+    }
+    if (error.code === 'email_address_invalid' || error.message?.includes('invalid')) {
+      setAuthMessage(msg.enterEmail)
       return
     }
     setAuthMessage(error.message ?? msg.createAccountError)
@@ -605,7 +622,10 @@ authForm.addEventListener('submit', async (e) => {
       await handleSetNewPassword(newPassword)
       return
     }
-    if (!email) return
+    if (!email) {
+      setAuthMessage(msg.enterEmail)
+      return
+    }
     if (authModalMode === 'create') {
       await handleCreateAccount(email, password)
     } else {
