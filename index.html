@@ -93,7 +93,12 @@
         <!-- Add-todo modal: set importance, due date, category before adding -->
         <div id="add-todo-modal-backdrop" class="auth-modal-backdrop add-todo-modal-backdrop" hidden aria-hidden="true"></div>
         <div id="add-todo-modal" class="auth-modal add-todo-modal" role="dialog" aria-labelledby="add-todo-modal-title" hidden aria-hidden="true">
-          <h2 id="add-todo-modal-title" class="auth-modal__title">Add todo</h2>
+          <div class="auth-modal__header auth-modal__header--with-close">
+            <h2 id="add-todo-modal-title" class="auth-modal__title">Add todo</h2>
+            <button type="button" id="add-todo-modal-close" class="auth-modal__close" aria-label="Close">
+              <svg class="auth-modal__close-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+          </div>
           <p id="add-todo-modal-text" class="add-todo-modal__text"></p>
           <form id="add-todo-modal-form" class="auth-form add-todo-modal__form">
             <div class="auth-form__label">
@@ -121,7 +126,6 @@
             </div>
             <div class="auth-form__actions">
               <button type="submit" class="auth-form__submit">Add</button>
-              <button type="button" id="add-todo-modal-cancel" class="auth-form__cancel">Cancel</button>
             </div>
           </form>
         </div>

@@ -145,7 +145,7 @@ const addTodoModalImportance = document.getElementById('add-todo-modal-importanc
 const addTodoModalDueDate = document.getElementById('add-todo-modal-due-date')
 const addTodoModalCategory = document.getElementById('add-todo-modal-category')
 const addTodoModalTask = document.getElementById('add-todo-modal-task')
-const addTodoModalCancel = document.getElementById('add-todo-modal-cancel')
+const addTodoModalClose = document.getElementById('add-todo-modal-close')
 const filterSortBy = document.getElementById('filter-sort-by')
 const filterSortOrder = document.getElementById('filter-sort-order')
 const filterType = document.getElementById('filter-type')
@@ -830,7 +830,7 @@ if (addTodoModalForm) {
     if (input) input.focus()
   })
 }
-if (addTodoModalCancel) addTodoModalCancel.addEventListener('click', () => {
+if (addTodoModalClose) addTodoModalClose.addEventListener('click', () => {
   if (input) input.value = pendingAddTodoText ?? input.value
   closeAddTodoModal()
 })
