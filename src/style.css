@@ -476,9 +476,54 @@ body {
   color: var(--color-text);
 }
 
+.categories-list__swatch {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  display: block;
+}
+
+.categories-list__name,
 .categories-list__pill {
   flex: 1;
   min-width: 0;
+  cursor: text;
+}
+
+.categories-list__edit-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+
+.categories-list__edit-name {
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+  color: var(--color-text);
+  border: none;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg);
+  box-shadow: var(--shadow-neu-inset-sm);
+}
+
+.categories-list__edit-name:focus {
+  outline: none;
+  box-shadow: var(--shadow-neu-inset-sm), 0 0 0 2px var(--color-border-focus);
+}
+
+.categories-list__color-input {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 1.5rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  background: none;
 }
 
 .categories-list__delete {

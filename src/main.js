@@ -161,6 +161,7 @@ const addTodoModalForm = document.getElementById('add-todo-modal-form')
 const addTodoModalImportance = document.getElementById('add-todo-modal-importance')
 const addTodoModalDueDate = document.getElementById('add-todo-modal-due-date')
 const addTodoModalCategory = document.getElementById('add-todo-modal-category')
+const addTodoModalCategoryList = document.getElementById('add-todo-modal-category-list')
 const addTodoModalTask = document.getElementById('add-todo-modal-task')
 const addTodoModalClose = document.getElementById('add-todo-modal-close')
 const filterSortBy = document.getElementById('filter-sort-by')
@@ -821,10 +822,8 @@ async function loadCategories() {
 
 function populateCategoryDropdowns() {
   const options = categories.map((c) => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('')
-  if (addTodoModalCategory) {
-    const current = addTodoModalCategory.value
-    addTodoModalCategory.innerHTML = '<option value="">None</option>' + options
-    if (categories.some((c) => c.name === current)) addTodoModalCategory.value = current
+  if (addTodoModalCategoryList) {
+    addTodoModalCategoryList.innerHTML = categories.map((c) => `<option value="${escapeHtml(c.name)}">`).join('')
   }
   if (editTodoModalCategory) {
     const current = editTodoModalCategory.value
@@ -1067,8 +1066,12 @@ if (addTodoModalForm) {
     }
     const importance = addTodoModalImportance?.value?.trim() || null
     const dueDate = addTodoModalDueDate?.value?.trim() || null
-    const category = addTodoModalCategory?.value?.trim() || null
+    let category = addTodoModalCategory?.value?.trim() || null
     const status = pendingAddTodoStatus || 'tasks'
+    if (category && !categories.some((c) => c.name === category)) {
+      const catResult = await supabase.from('categories').insert({ user_id: user.id, name: category, color: '#10b981' })
+      if (!catResult.error) await loadCategories()
+    }
     let result = await supabase
       .from('todos')
       .insert({ text, is_complete: status === 'completed', status, user_id: user.id, importance, due_date: dueDate || null, category })
@@ -1097,6 +1100,7 @@ if (addTodoModalClose) addTodoModalClose.addEventListener('click', () => {
   if (input) input.value = pendingAddTodoText ?? input.value
   closeAddTodoModal()
 })
+
 if (addTodoModalBackdrop) addTodoModalBackdrop.addEventListener('click', () => {
   if (input) input.value = pendingAddTodoText ?? input.value
   closeAddTodoModal()
@@ -1365,15 +1369,20 @@ function closeCategoriesModal() {
 function renderCategoriesList() {
   if (!categoriesListEl) return
   categoriesListEl.innerHTML = categories
-    .map(
-      (c) =>
-        `<li class="categories-list__item">
-          <span class="categories-list__pill todo-item__category-pill" style="color:${escapeHtml(c.color)}">${escapeHtml(c.name)}</span>
-          ${c.id != null ? `<button type="button" class="categories-list__delete" data-category-id="${escapeHtml(String(c.id))}" aria-label="Delete category ${escapeHtml(c.name)}">
+    .map((c) => {
+      const hasId = c.id != null
+      const nameAttrs = hasId
+        ? ` data-category-id="${escapeHtml(String(c.id))}" data-category-name="${escapeHtml(c.name)}" data-category-color="${escapeHtml(c.color)}"`
+        : ''
+      return `<li class="categories-list__item">
+          <span class="categories-list__swatch" style="background-color:${escapeHtml(c.color)}" aria-hidden="true"></span>
+          <span class="categories-list__name todo-item__category-pill" style="color:${escapeHtml(c.color)}"${nameAttrs}>${escapeHtml(c.name)}</span>
+          ${hasId ? `<input type="color" class="categories-list__color-input" value="${escapeHtml(c.color)}" data-category-id="${escapeHtml(String(c.id))}" aria-label="Change color for ${escapeHtml(c.name)}" />` : ''}
+          ${hasId ? `<button type="button" class="categories-list__delete" data-category-id="${escapeHtml(String(c.id))}" aria-label="Delete category ${escapeHtml(c.name)}">
             <svg class="categories-list__delete-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>` : ''}
         </li>`
-    )
+    })
     .join('')
 }
 
@@ -1403,6 +1412,7 @@ if (categoriesForm) {
 }
 
 if (categoriesListEl) {
+  // Delete: handle first so X does not trigger name edit
   categoriesListEl.addEventListener('click', async (e) => {
     const btn = e.target.closest('.categories-list__delete')
     if (!btn || !supabase) return
@@ -1418,6 +1428,103 @@ if (categoriesListEl) {
     await loadCategories()
     renderCategoriesList()
     applyFilterSortAndRender()
+  })
+
+  // Color picker change: update category color in Supabase
+  categoriesListEl.addEventListener('change', async (e) => {
+    const colorInput = e.target.closest('.categories-list__color-input')
+    if (!colorInput || !supabase) return
+    const id = colorInput.dataset.categoryId
+    if (!id) return
+    const user = await getCurrentUser()
+    if (!user) return
+    const color = colorInput.value || '#888'
+    const { error } = await supabase.from('categories').update({ color }).eq('id', id).eq('user_id', user.id)
+    if (error) {
+      console.error('Failed to update category color:', error)
+      return
+    }
+    await loadCategories()
+    renderCategoriesList()
+    applyFilterSortAndRender()
+  })
+
+  // Name click-to-edit: same pattern as todo card text (blur/Enter = commit, Escape = cancel)
+  categoriesListEl.addEventListener('click', (e) => {
+    const nameEl = e.target.closest('.categories-list__name')
+    if (!nameEl || nameEl.closest('.categories-list__edit-wrap')) return
+    if (nameEl.querySelector('.categories-list__edit-name')) return
+    const categoryId = nameEl.dataset.categoryId
+    if (!categoryId) return
+    const oldName = nameEl.dataset.categoryName || ''
+    const oldColor = nameEl.dataset.categoryColor || '#888'
+    const item = nameEl.closest('.categories-list__item')
+    if (!item) return
+    const wrap = document.createElement('span')
+    wrap.className = 'categories-list__edit-wrap'
+    const input = document.createElement('input')
+    input.type = 'text'
+    input.className = 'categories-list__edit-name'
+    input.value = oldName
+    input.setAttribute('aria-label', 'Category name')
+    wrap.appendChild(input)
+    nameEl.replaceWith(wrap)
+    input.focus()
+    input.select()
+
+    let committed = false
+    function commit() {
+      if (committed) return
+      committed = true
+      const newName = (input.value && input.value.trim()) || oldName
+      const span = document.createElement('span')
+      span.className = 'categories-list__name todo-item__category-pill'
+      span.style.color = oldColor
+      span.dataset.categoryId = categoryId
+      span.dataset.categoryName = newName
+      span.dataset.categoryColor = oldColor
+      span.textContent = newName
+      wrap.replaceWith(span)
+      if (newName === oldName) return
+      if (!supabase) return
+      getCurrentUser().then(async (user) => {
+        if (!user) return
+        const { error } = await supabase.from('categories').update({ name: newName }).eq('id', categoryId).eq('user_id', user.id)
+        if (error) {
+          console.error('Failed to update category name:', error)
+          return
+        }
+        const { error: todosError } = await supabase.from('todos').update({ category: newName }).eq('user_id', user.id).eq('category', oldName)
+        if (todosError) console.error('Failed to update todos category:', todosError)
+        await loadCategories()
+        renderCategoriesList()
+        applyFilterSortAndRender()
+      })
+    }
+
+    function cancel() {
+      if (committed) return
+      committed = true
+      const span = document.createElement('span')
+      span.className = 'categories-list__name todo-item__category-pill'
+      span.style.color = oldColor
+      span.dataset.categoryId = categoryId
+      span.dataset.categoryName = oldName
+      span.dataset.categoryColor = oldColor
+      span.textContent = oldName
+      wrap.replaceWith(span)
+    }
+
+    input.addEventListener('blur', commit, { once: true })
+    input.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') {
+        ev.preventDefault()
+        commit()
+      } else if (ev.key === 'Escape') {
+        ev.preventDefault()
+        cancel()
+      }
+    })
   })
 }
 

@@ -140,11 +140,10 @@
               Due date
               <input type="date" id="add-todo-modal-due-date" class="auth-form__input" />
             </div>
-            <div class="auth-form__label">
+            <div class="auth-form__label" id="add-todo-modal-category-row">
               Category
-              <select id="add-todo-modal-category" class="auth-form__input">
-                <option value="">None</option>
-              </select>
+              <input type="text" id="add-todo-modal-category" class="auth-form__input" placeholder="Category name (optional)" list="add-todo-modal-category-list" aria-label="Category" />
+              <datalist id="add-todo-modal-category-list"></datalist>
             </div>
             <div class="auth-form__actions">
               <button type="submit" class="auth-form__submit">Add</button>
@@ -213,6 +212,7 @@
               <svg class="auth-modal__close-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
           </div>
+          <ul id="categories-list" class="categories-list" aria-label="Your categories"></ul>
           <form id="categories-form" class="auth-form add-todo-modal__form">
             <div class="categories-form__row">
               <label class="auth-form__label categories-form__name-label">Name <input type="text" id="category-name" class="auth-form__input" placeholder="Category name" /></label>
@@ -222,7 +222,6 @@
               <button type="submit" class="auth-form__submit">Add category</button>
             </div>
           </form>
-          <ul id="categories-list" class="categories-list" aria-label="Your categories"></ul>
         </div>
         <!-- Add-todo bar: full width above the Kanban -->
         <form class="todo-form" id="todo-form" aria-label="Add todo">
