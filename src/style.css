@@ -383,6 +383,14 @@ body {
   color: var(--color-text);
 }
 
+.auth-modal__message[data-message-type="error"] {
+  color: var(--color-danger);
+}
+
+.auth-modal__message[data-message-type="success"] {
+  color: var(--color-success);
+}
+
 .auth-form__label {
   display: block;
   font-size: var(--font-size-sm);

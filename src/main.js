@@ -49,6 +49,13 @@ const COPY = {
     emailAlreadyRegistered: 'This email is already registered. Sign in instead.',
     createAccountError: 'Failed to create account.',
     signInError: 'Sign in failed.',
+    invalidCredentials: 'Invalid email or password. Please try again.',
+    emailNotConfirmed: 'Please verify your email using the link we sent you, then sign in.',
+    userBanned: 'This account is temporarily disabled. Contact support if you need help.',
+    somethingWentWrong: 'Something went wrong. Please try again.',
+    invalidEmailFormat: 'Please enter a valid email address.',
+    emailNotAuthorized: 'This email domain isn\'t supported. Use a different address.',
+    signupDisabled: 'Sign up is currently unavailable.',
     checkEmailVerify: 'Check your email to verify. You can set a password after verifying.',
     checkEmailSetPassword: 'Check your email to verify, then you can set a password here.',
     checkEmailReset: 'Check your email for a link to reset your password.',
@@ -427,15 +434,21 @@ function closeAuthModal() {
   authModalBackdrop.setAttribute('aria-hidden', 'true')
 }
 
-function setAuthMessage(text) {
+function setAuthMessage(text, type) {
   if (!authModalMessage) return
   authModalMessage.textContent = text
   if (text) {
     authModalMessage.removeAttribute('hidden')
     authModalMessage.setAttribute('aria-hidden', 'false')
+    if (type === 'error' || type === 'success' || type === 'info') {
+      authModalMessage.setAttribute('data-message-type', type)
+    } else {
+      authModalMessage.removeAttribute('data-message-type')
+    }
     authModalMessage.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
   } else {
     authModalMessage.setAttribute('aria-hidden', 'true')
+    authModalMessage.removeAttribute('data-message-type')
   }
 }
 
@@ -609,17 +622,17 @@ async function handleCreateAccount(email, password) {
   const msg = COPY.messages
   const emailTrimmed = typeof email === 'string' ? email.trim() : ''
   if (!emailTrimmed) {
-    setAuthMessage(msg.enterEmail)
+    setAuthMessage(msg.enterEmail, 'error')
     return
   }
   const { data, error } = await supabase.auth.updateUser({ email: emailTrimmed })
   if (error) {
     if (error.code === 'over_email_send_rate_limit' || error.status === 429 || error.message?.toLowerCase().includes('too many') || error.message?.toLowerCase().includes('rate limit')) {
-      setAuthMessage(error.code === 'over_email_send_rate_limit' ? msg.emailRateLimit : msg.rateLimit)
+      setAuthMessage(error.code === 'over_email_send_rate_limit' ? msg.emailRateLimit : msg.rateLimit, 'error')
       return
     }
     if (error.message?.toLowerCase().includes('already') || error.code === 'user_already_exists') {
-      setAuthMessage(msg.emailAlreadyRegistered)
+      setAuthMessage(msg.emailAlreadyRegistered, 'error')
       authModalMode = 'signin'
       authModalTitle.textContent = COPY.modal.titles.signin
       authSubmit.textContent = COPY.modal.submitLabels.signin
@@ -627,20 +640,28 @@ async function handleCreateAccount(email, password) {
       return
     }
     if (error.code === 'email_address_invalid' || error.message?.includes('invalid')) {
-      setAuthMessage(msg.enterEmail)
+      setAuthMessage(msg.invalidEmailFormat, 'error')
       return
     }
-    setAuthMessage(error.message ?? msg.createAccountError)
+    if (error.code === 'email_address_not_authorized') {
+      setAuthMessage(msg.emailNotAuthorized, 'error')
+      return
+    }
+    if (error.code === 'signup_disabled' || error.code === 'email_provider_disabled') {
+      setAuthMessage(msg.signupDisabled, 'error')
+      return
+    }
+    setAuthMessage(error.message ?? msg.createAccountError, 'error')
     return
   }
-  setAuthMessage(msg.checkEmailVerify)
+  setAuthMessage(msg.checkEmailVerify, 'success')
   if (password && password.length >= 6) {
     const { error: pwError } = await supabase.auth.updateUser({ password })
     if (pwError) {
       if (pwError.status === 429 || pwError.message?.toLowerCase().includes('too many') || pwError.message?.toLowerCase().includes('rate limit')) {
-        setAuthMessage(msg.rateLimit)
+        setAuthMessage(msg.rateLimit, 'error')
       } else {
-        setAuthMessage(msg.checkEmailSetPassword)
+        setAuthMessage(msg.checkEmailSetPassword, 'info')
       }
       return
     }
@@ -656,10 +677,23 @@ async function handleSignIn(email, password, anonymousUserId) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
   if (error) {
     if (error.status === 429 || error.message?.toLowerCase().includes('too many') || error.message?.toLowerCase().includes('rate limit')) {
-      setAuthMessage(msg.rateLimit)
-    } else {
-      setAuthMessage(error.message ?? msg.signInError)
+      setAuthMessage(msg.rateLimit, 'error')
+      return
     }
+    let messageKey = null
+    if (error.code === 'invalid_credentials') {
+      messageKey = 'invalidCredentials'
+    } else if (error.code === 'email_not_confirmed') {
+      messageKey = 'emailNotConfirmed'
+    } else if (error.code === 'user_banned') {
+      messageKey = 'userBanned'
+    } else if (!error.code) {
+      const m = error.message?.toLowerCase() ?? ''
+      if (m.includes('invalid') && (m.includes('login') || m.includes('credential'))) messageKey = 'invalidCredentials'
+      else if (m.includes('email') && m.includes('confirm')) messageKey = 'emailNotConfirmed'
+    }
+    const text = messageKey ? msg[messageKey] : (error.message ?? msg.signInError)
+    setAuthMessage(text, 'error')
     return
   }
   if (anonymousUserId) {
@@ -681,13 +715,13 @@ async function handleRecoverPassword(email) {
   })
   if (error) {
     if (error.status === 429 || error.message?.toLowerCase().includes('too many') || error.message?.toLowerCase().includes('rate limit')) {
-      setAuthMessage(msg.rateLimit)
+      setAuthMessage(msg.rateLimit, 'error')
     } else {
-      setAuthMessage(error.message ?? msg.sendResetError)
+      setAuthMessage(error.message ?? msg.sendResetError, 'error')
     }
     return
   }
-  setAuthMessage(msg.checkEmailReset)
+  setAuthMessage(msg.checkEmailReset, 'success')
 }
 
 async function handleSetNewPassword(password) {
@@ -696,9 +730,9 @@ async function handleSetNewPassword(password) {
   const { error } = await supabase.auth.updateUser({ password })
   if (error) {
     if (error.status === 429 || error.message?.toLowerCase().includes('too many') || error.message?.toLowerCase().includes('rate limit')) {
-      setAuthMessage(msg.rateLimit)
+      setAuthMessage(msg.rateLimit, 'error')
     } else {
-      setAuthMessage(error.message ?? msg.updatePasswordError)
+      setAuthMessage(error.message ?? msg.updatePasswordError, 'error')
     }
     return
   }
@@ -717,7 +751,7 @@ authForm.addEventListener('submit', async (e) => {
   const msg = COPY.messages
   setAuthMessage('')
   if (!supabase) {
-    setAuthMessage('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.')
+    setAuthMessage('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.', 'error')
     return
   }
   try {
@@ -725,7 +759,7 @@ authForm.addEventListener('submit', async (e) => {
     const password = authPassword.value
     if (authModalMode === 'recover') {
       if (!email) {
-        setAuthMessage(msg.enterEmail)
+        setAuthMessage(msg.enterEmail, 'error')
         return
       }
       await handleRecoverPassword(email)
@@ -735,29 +769,29 @@ authForm.addEventListener('submit', async (e) => {
       const newPassword = authNewPassword?.value ?? ''
       const confirm = authPasswordConfirm?.value ?? ''
       if (!newPassword) {
-        setAuthMessage(msg.enterNewPassword)
+        setAuthMessage(msg.enterNewPassword, 'error')
         return
       }
       if (newPassword.length < 6) {
-        setAuthMessage(msg.passwordTooShort)
+        setAuthMessage(msg.passwordTooShort, 'error')
         return
       }
       if (newPassword !== confirm) {
-        setAuthMessage(msg.passwordsDontMatch)
+        setAuthMessage(msg.passwordsDontMatch, 'error')
         return
       }
       await handleSetNewPassword(newPassword)
       return
     }
     if (!email) {
-      setAuthMessage(msg.enterEmail)
+      setAuthMessage(msg.enterEmail, 'error')
       return
     }
     if (authModalMode === 'create') {
       await handleCreateAccount(email, password)
     } else {
       if (!password) {
-        setAuthMessage(msg.enterPassword)
+        setAuthMessage(msg.enterPassword, 'error')
         return
       }
       const user = await getCurrentUser()
@@ -765,7 +799,7 @@ authForm.addEventListener('submit', async (e) => {
       await handleSignIn(email, password, anonymousUserId)
     }
   } catch (err) {
-    setAuthMessage(err?.message ?? msg.signInError)
+    setAuthMessage(err?.message ?? msg.somethingWentWrong, 'error')
   }
 })
 
