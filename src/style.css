@@ -424,18 +424,142 @@ body {
 }
 
 /* Add-todo modal */
-.add-todo-modal__text {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  margin-bottom: var(--space-md);
-}
-
 .add-todo-modal__form .auth-form__label {
   margin-bottom: var(--space-sm);
 }
 
 .auth-form__label--hidden {
   display: none;
+}
+
+/* Pill group and selectable pills (importance, category) – debossed neumorphic style */
+.pill-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-xs);
+}
+
+.pill-group--categories {
+  margin-bottom: var(--space-sm);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Default: same debossed/inset look as .auth-form__input and .todo-filters__select */
+.pill--selectable {
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  font-family: inherit;
+  border-radius: var(--radius-full);
+  border: none;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  cursor: pointer;
+  box-shadow: var(--shadow-neu-inset-sm);
+  transition: box-shadow 0.2s ease, background-color 0.2s, color 0.2s;
+}
+
+.pill--selectable:hover {
+  box-shadow: var(--shadow-neu-inset-sm), 0 0 0 1px var(--color-border);
+}
+
+/* Selected: accent color with pressed-in (debossed) shadow to match app style */
+.pill--selectable[aria-checked="true"] {
+  background-color: var(--color-accent);
+  color: var(--color-surface);
+  box-shadow: var(--shadow-neu-pressed);
+}
+
+/* Category pills: when selected, text matches other pills (inherit surface color) */
+.pill--selectable[aria-checked="true"] span {
+  color: inherit;
+}
+
+.pill--selectable:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-neu-inset-sm), 0 0 0 2px var(--color-border-focus);
+}
+
+.pill--selectable[aria-checked="true"]:focus-visible {
+  box-shadow: var(--shadow-neu-pressed), 0 0 0 2px var(--color-border-focus);
+}
+
+/* Category: pills and "+ Add" on one line; form (name + color + Add category pill) hidden until "+ Add" is clicked */
+.category-pills-and-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-xs);
+}
+
+.category-pills-and-add .pill-group--categories {
+  margin-bottom: 0;
+}
+
+.category-add-inline__toggle {
+  flex-shrink: 0;
+}
+
+.category-add-inline__toggle[hidden] {
+  display: none !important;
+}
+
+.category-add-inline__form[hidden] {
+  display: none !important;
+}
+
+.category-add-inline__form {
+  margin-top: var(--space-sm);
+  width: 100%;
+}
+
+.category-add-inline__form .categories-form__row {
+  margin-bottom: 0;
+  gap: var(--space-sm);
+}
+
+.category-add-inline__form .auth-form__label {
+  margin-bottom: 0;
+}
+
+.category-add-inline__submit {
+  flex-shrink: 0;
+}
+
+.category-add-inline__cancel {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  font-size: var(--font-size-base);
+  line-height: 1;
+  font-family: inherit;
+  border: none;
+  border-radius: var(--radius-full);
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.category-add-inline__cancel:hover {
+  color: var(--color-text);
+}
+
+.category-add-inline__cancel:focus-visible {
+  outline: none;
+  color: var(--color-text);
+  box-shadow: 0 0 0 2px var(--color-border-focus);
+  border-radius: var(--radius-full);
 }
 
 /* Delete confirm dialog: message + Yes / Cancel */
