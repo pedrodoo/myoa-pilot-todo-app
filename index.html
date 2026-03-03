@@ -121,62 +121,89 @@
               <svg class="auth-modal__close-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
           </div>
-          <p id="add-todo-modal-text" class="add-todo-modal__text"></p>
           <form id="add-todo-modal-form" class="auth-form add-todo-modal__form">
             <div class="auth-form__label">
               Task
               <input type="text" id="add-todo-modal-task" class="auth-form__input" placeholder="Task description" aria-label="Task description" />
             </div>
-            <div class="auth-form__label">
+            <div class="auth-form__label" role="group" aria-label="Importance">
               Importance
-              <select id="add-todo-modal-importance" class="auth-form__input">
-                <option value="">None</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
+              <div class="pill-group" id="add-todo-modal-importance" role="radiogroup" aria-label="Importance">
+                <button type="button" class="pill pill--selectable" role="radio" aria-checked="true" data-value="">None</button>
+                <button type="button" class="pill pill--selectable" role="radio" aria-checked="false" data-value="low">Low</button>
+                <button type="button" class="pill pill--selectable" role="radio" aria-checked="false" data-value="medium">Medium</button>
+                <button type="button" class="pill pill--selectable" role="radio" aria-checked="false" data-value="high">High</button>
+              </div>
             </div>
             <div class="auth-form__label">
               Due date
               <input type="date" id="add-todo-modal-due-date" class="auth-form__input" />
             </div>
-            <div class="auth-form__label" id="add-todo-modal-category-row">
+            <div class="auth-form__label" role="group" aria-label="Category">
               Category
-              <input type="text" id="add-todo-modal-category" class="auth-form__input" placeholder="Category name (optional)" list="add-todo-modal-category-list" aria-label="Category" />
-              <datalist id="add-todo-modal-category-list"></datalist>
+              <div class="category-pills-and-add">
+                <div class="pill-group pill-group--categories" id="add-todo-modal-category-pills" role="radiogroup" aria-label="Category">
+                  <button type="button" class="pill pill--selectable" role="radio" aria-checked="true" data-value="">None</button>
+                </div>
+                <button type="button" id="add-todo-modal-category-toggle-btn" class="pill pill--selectable category-add-inline__toggle" aria-expanded="false" aria-controls="add-todo-modal-category-add-form">+ Add</button>
+              </div>
+              <div id="add-todo-modal-category-add-form" class="category-add-inline__form" hidden>
+                <div class="categories-form__row">
+                  <label class="auth-form__label categories-form__name-label">Name <input type="text" id="add-todo-modal-category-new-name" class="auth-form__input" placeholder="Category name" aria-label="New category name" /></label>
+                  <label class="auth-form__label categories-form__color-label">Color <input type="color" id="add-todo-modal-category-new-color" class="auth-form__input auth-form__input--color" value="#10b981" aria-label="New category color" /></label>
+                  <button type="button" id="add-todo-modal-category-add-btn" class="pill pill--selectable category-add-inline__submit">Save</button>
+                  <button type="button" id="add-todo-modal-category-cancel-btn" class="category-add-inline__cancel" aria-label="Cancel add category">×</button>
+                </div>
+              </div>
             </div>
             <div class="auth-form__actions">
               <button type="submit" class="auth-form__submit">Add</button>
             </div>
           </form>
         </div>
-        <!-- Edit todo modal: text, importance, due date, category, move to column -->
+        <!-- Edit todo modal: same structure as Add (task, importance, due date, category, move to column) -->
         <div id="edit-todo-modal-backdrop" class="auth-modal-backdrop" hidden aria-hidden="true"></div>
         <div id="edit-todo-modal" class="auth-modal add-todo-modal" role="dialog" aria-labelledby="edit-todo-modal-title" hidden aria-hidden="true">
-          <h2 id="edit-todo-modal-title" class="auth-modal__title">Edit todo</h2>
+          <div class="auth-modal__header auth-modal__header--with-close">
+            <h2 id="edit-todo-modal-title" class="auth-modal__title">Edit todo</h2>
+            <button type="button" id="edit-todo-modal-close" class="auth-modal__close" aria-label="Close">
+              <svg class="auth-modal__close-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+          </div>
           <form id="edit-todo-modal-form" class="auth-form add-todo-modal__form">
             <div class="auth-form__label">
               Task
-              <input type="text" id="edit-todo-modal-text" class="auth-form__input" placeholder="Task description" />
+              <input type="text" id="edit-todo-modal-text" class="auth-form__input" placeholder="Task description" aria-label="Task description" />
             </div>
-            <div class="auth-form__label">
+            <div class="auth-form__label" role="group" aria-label="Importance">
               Importance
-              <select id="edit-todo-modal-importance" class="auth-form__input">
-                <option value="">None</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
+              <div class="pill-group" id="edit-todo-modal-importance" role="radiogroup" aria-label="Importance">
+                <button type="button" class="pill pill--selectable" role="radio" aria-checked="false" data-value="">None</button>
+                <button type="button" class="pill pill--selectable" role="radio" aria-checked="false" data-value="low">Low</button>
+                <button type="button" class="pill pill--selectable" role="radio" aria-checked="false" data-value="medium">Medium</button>
+                <button type="button" class="pill pill--selectable" role="radio" aria-checked="false" data-value="high">High</button>
+              </div>
             </div>
             <div class="auth-form__label">
               Due date
               <input type="date" id="edit-todo-modal-due-date" class="auth-form__input" />
             </div>
-            <div class="auth-form__label">
+            <div class="auth-form__label" role="group" aria-label="Category">
               Category
-              <select id="edit-todo-modal-category" class="auth-form__input">
-                <option value="">None</option>
-              </select>
+              <div class="category-pills-and-add">
+                <div class="pill-group pill-group--categories" id="edit-todo-modal-category-pills" role="radiogroup" aria-label="Category">
+                  <button type="button" class="pill pill--selectable" role="radio" aria-checked="true" data-value="">None</button>
+                </div>
+                <button type="button" id="edit-todo-modal-category-toggle-btn" class="pill pill--selectable category-add-inline__toggle" aria-expanded="false" aria-controls="edit-todo-modal-category-add-form">+ Add</button>
+              </div>
+              <div id="edit-todo-modal-category-add-form" class="category-add-inline__form" hidden>
+                <div class="categories-form__row">
+                  <label class="auth-form__label categories-form__name-label">Name <input type="text" id="edit-todo-modal-category-new-name" class="auth-form__input" placeholder="Category name" aria-label="New category name" /></label>
+                  <label class="auth-form__label categories-form__color-label">Color <input type="color" id="edit-todo-modal-category-new-color" class="auth-form__input auth-form__input--color" value="#10b981" aria-label="New category color" /></label>
+                  <button type="button" id="edit-todo-modal-category-add-btn" class="pill pill--selectable category-add-inline__submit">Save</button>
+                  <button type="button" id="edit-todo-modal-category-cancel-btn" class="category-add-inline__cancel" aria-label="Cancel add category">×</button>
+                </div>
+              </div>
             </div>
             <div class="auth-form__label">
               Move to column

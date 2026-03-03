@@ -163,12 +163,16 @@ function getKanbanColumnContainers() {
 // Add-todo modal (importance, due date, category when creating)
 const addTodoModal = document.getElementById('add-todo-modal')
 const addTodoModalBackdrop = document.getElementById('add-todo-modal-backdrop')
-const addTodoModalText = document.getElementById('add-todo-modal-text')
 const addTodoModalForm = document.getElementById('add-todo-modal-form')
 const addTodoModalImportance = document.getElementById('add-todo-modal-importance')
 const addTodoModalDueDate = document.getElementById('add-todo-modal-due-date')
-const addTodoModalCategory = document.getElementById('add-todo-modal-category')
-const addTodoModalCategoryList = document.getElementById('add-todo-modal-category-list')
+const addTodoModalCategoryPills = document.getElementById('add-todo-modal-category-pills')
+const addTodoModalCategoryToggleBtn = document.getElementById('add-todo-modal-category-toggle-btn')
+const addTodoModalCategoryAddForm = document.getElementById('add-todo-modal-category-add-form')
+const addTodoModalCategoryNewName = document.getElementById('add-todo-modal-category-new-name')
+const addTodoModalCategoryNewColor = document.getElementById('add-todo-modal-category-new-color')
+const addTodoModalCategoryAddBtn = document.getElementById('add-todo-modal-category-add-btn')
+const addTodoModalCategoryCancelBtn = document.getElementById('add-todo-modal-category-cancel-btn')
 const addTodoModalTask = document.getElementById('add-todo-modal-task')
 const addTodoModalClose = document.getElementById('add-todo-modal-close')
 const filterSortBy = document.getElementById('filter-sort-by')
@@ -189,8 +193,15 @@ const editTodoModalForm = document.getElementById('edit-todo-modal-form')
 const editTodoModalText = document.getElementById('edit-todo-modal-text')
 const editTodoModalImportance = document.getElementById('edit-todo-modal-importance')
 const editTodoModalDueDate = document.getElementById('edit-todo-modal-due-date')
-const editTodoModalCategory = document.getElementById('edit-todo-modal-category')
+const editTodoModalCategoryPills = document.getElementById('edit-todo-modal-category-pills')
+const editTodoModalCategoryToggleBtn = document.getElementById('edit-todo-modal-category-toggle-btn')
+const editTodoModalCategoryAddForm = document.getElementById('edit-todo-modal-category-add-form')
+const editTodoModalCategoryNewName = document.getElementById('edit-todo-modal-category-new-name')
+const editTodoModalCategoryNewColor = document.getElementById('edit-todo-modal-category-new-color')
+const editTodoModalCategoryAddBtn = document.getElementById('edit-todo-modal-category-add-btn')
+const editTodoModalCategoryCancelBtn = document.getElementById('edit-todo-modal-category-cancel-btn')
 const editTodoModalStatus = document.getElementById('edit-todo-modal-status')
+const editTodoModalClose = document.getElementById('edit-todo-modal-close')
 const editTodoModalCancel = document.getElementById('edit-todo-modal-cancel')
 const deleteConfirmBackdrop = document.getElementById('delete-confirm-backdrop')
 const deleteConfirmModal = document.getElementById('delete-confirm-modal')
@@ -856,20 +867,103 @@ async function loadCategories() {
 
 function populateCategoryDropdowns() {
   const options = categories.map((c) => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('')
-  if (addTodoModalCategoryList) {
-    addTodoModalCategoryList.innerHTML = categories.map((c) => `<option value="${escapeHtml(c.name)}">`).join('')
-  }
-  if (editTodoModalCategory) {
-    const current = editTodoModalCategory.value
-    editTodoModalCategory.innerHTML = '<option value="">None</option>' + options
-    if (categories.some((c) => c.name === current)) editTodoModalCategory.value = current
-  }
   if (filterCategory) {
     const current = filterCategory.value
     filterCategory.innerHTML = '<option value="">Select category</option>' + options
     if (categories.some((c) => c.name === current)) filterCategory.value = current
   }
 }
+
+function getDefaultCategoryColor() {
+  try {
+    const color = getComputedStyle(document.documentElement).getPropertyValue('--color-accent').trim()
+    return color || '#10b981'
+  } catch {
+    return '#10b981'
+  }
+}
+
+function populateCategoryPills() {
+  const categoryPillsHtml = categories.map(
+    (c) =>
+      `<button type="button" class="pill pill--selectable" role="radio" aria-checked="false" data-value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</button>`
+  ).join('')
+  const categoryPillsHtmlEdit = categories.map(
+    (c) =>
+      `<button type="button" class="pill pill--selectable" role="radio" aria-checked="false" data-value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</button>`
+  ).join('')
+
+  if (addTodoModalCategoryPills) {
+    addTodoModalCategoryPills.innerHTML = '<button type="button" class="pill pill--selectable" role="radio" aria-checked="true" data-value="">None</button>' + categoryPillsHtml
+  }
+  if (editTodoModalCategoryPills) {
+    editTodoModalCategoryPills.innerHTML = '<button type="button" class="pill pill--selectable" role="radio" aria-checked="true" data-value="">None</button>' + categoryPillsHtmlEdit
+  }
+}
+
+function selectPillInGroup(container, value) {
+  if (!container) return
+  const pills = container.querySelectorAll('[role="radio"]')
+  pills.forEach((p) => {
+    const pillValue = p.getAttribute('data-value') ?? ''
+    p.setAttribute('aria-checked', pillValue === (value ?? '') ? 'true' : 'false')
+  })
+}
+
+function getSelectedPillValue(container) {
+  const pill = container?.querySelector('[role="radio"][aria-checked="true"]')
+  const v = pill?.getAttribute('data-value')?.trim()
+  return v === '' ? null : v || null
+}
+
+function getAddTodoModalImportance() {
+  return getSelectedPillValue(addTodoModalImportance)
+}
+
+function setAddTodoModalImportance(value) {
+  selectPillInGroup(addTodoModalImportance, value ?? '')
+}
+
+function getAddTodoModalCategory() {
+  return getSelectedPillValue(addTodoModalCategoryPills)
+}
+
+function setAddTodoModalCategory(value) {
+  selectPillInGroup(addTodoModalCategoryPills, value ?? '')
+}
+
+function getEditTodoModalImportance() {
+  return getSelectedPillValue(editTodoModalImportance)
+}
+
+function setEditTodoModalImportance(value) {
+  selectPillInGroup(editTodoModalImportance, value ?? '')
+}
+
+function getEditTodoModalCategory() {
+  return getSelectedPillValue(editTodoModalCategoryPills)
+}
+
+function setEditTodoModalCategory(value) {
+  selectPillInGroup(editTodoModalCategoryPills, value ?? '')
+}
+
+function setupPillGroupSelection(container) {
+  if (!container) return
+  container.addEventListener('click', (e) => {
+    const pill = e.target.closest('[role="radio"]')
+    if (pill && container.contains(pill)) {
+      e.preventDefault()
+      const value = pill.getAttribute('data-value')
+      selectPillInGroup(container, value === null ? '' : value)
+    }
+  })
+}
+
+setupPillGroupSelection(addTodoModalImportance)
+setupPillGroupSelection(addTodoModalCategoryPills)
+setupPillGroupSelection(editTodoModalImportance)
+setupPillGroupSelection(editTodoModalCategoryPills)
 
 /* ─────────────────────────────────────────────────────────────────────────────
    TODO LIST
@@ -1057,21 +1151,16 @@ if (mobileAddBar && mobileAddBarInput) {
 
 function openAddTodoModal() {
   if (!addTodoModal || !addTodoModalBackdrop) return
-  populateCategoryDropdowns()
-  if (addTodoModalText) addTodoModalText.textContent = pendingAddTodoText ? `Add todo: "${pendingAddTodoText}"` : ''
-  if (addTodoModalTask) {
-    addTodoModalTask.value = pendingAddTodoText ?? ''
-    addTodoModalTask.closest('.auth-form__label')?.classList.toggle('auth-form__label--hidden', !!pendingAddTodoText)
-  }
-  if (addTodoModalImportance) addTodoModalImportance.value = ''
+  populateCategoryPills()
+  if (addTodoModalTask) addTodoModalTask.value = pendingAddTodoText ?? ''
+  setAddTodoModalImportance('')
   if (addTodoModalDueDate) addTodoModalDueDate.value = ''
-  if (addTodoModalCategory) addTodoModalCategory.value = ''
+  setAddTodoModalCategory('')
   addTodoModal.hidden = false
   addTodoModal.setAttribute('aria-hidden', 'false')
   addTodoModalBackdrop.hidden = false
   addTodoModalBackdrop.setAttribute('aria-hidden', 'false')
-  if (addTodoModalTask && !pendingAddTodoText) addTodoModalTask.focus()
-  else if (addTodoModalImportance) addTodoModalImportance.focus()
+  if (addTodoModalTask) addTodoModalTask.focus()
 }
 
 function closeAddTodoModal() {
@@ -1083,9 +1172,10 @@ function closeAddTodoModal() {
   pendingAddTodoText = null
   pendingAddTodoStatus = 'tasks'
   if (addTodoModalTask) addTodoModalTask.value = ''
-  if (addTodoModalImportance) addTodoModalImportance.value = ''
+  setAddTodoModalImportance('')
   if (addTodoModalDueDate) addTodoModalDueDate.value = ''
-  if (addTodoModalCategory) addTodoModalCategory.value = ''
+  setAddTodoModalCategory('')
+  hideAndResetAddTodoCategoryForm()
 }
 
 if (addTodoModalForm) {
@@ -1098,9 +1188,9 @@ if (addTodoModalForm) {
       console.error('Not signed in. Cannot add todo.')
       return
     }
-    const importance = addTodoModalImportance?.value?.trim() || null
+    const importance = getAddTodoModalImportance()
     const dueDate = addTodoModalDueDate?.value?.trim() || null
-    let category = addTodoModalCategory?.value?.trim() || null
+    const category = getAddTodoModalCategory()
     const status = pendingAddTodoStatus || 'tasks'
     if (category && !categories.some((c) => c.name === category)) {
       const catResult = await supabase.from('categories').insert({ user_id: user.id, name: category, color: '#10b981' })
@@ -1140,15 +1230,88 @@ if (addTodoModalBackdrop) addTodoModalBackdrop.addEventListener('click', () => {
   closeAddTodoModal()
 })
 
+function hideAndResetAddTodoCategoryForm() {
+  if (addTodoModalCategoryAddForm) addTodoModalCategoryAddForm.hidden = true
+  if (addTodoModalCategoryToggleBtn) {
+    addTodoModalCategoryToggleBtn.hidden = false
+    addTodoModalCategoryToggleBtn.setAttribute('aria-expanded', 'false')
+  }
+  if (addTodoModalCategoryNewName) addTodoModalCategoryNewName.value = ''
+  if (addTodoModalCategoryNewColor) addTodoModalCategoryNewColor.value = getDefaultCategoryColor()
+}
+
+function hideAndResetEditTodoCategoryForm() {
+  if (editTodoModalCategoryAddForm) editTodoModalCategoryAddForm.hidden = true
+  if (editTodoModalCategoryToggleBtn) {
+    editTodoModalCategoryToggleBtn.hidden = false
+    editTodoModalCategoryToggleBtn.setAttribute('aria-expanded', 'false')
+  }
+  if (editTodoModalCategoryNewName) editTodoModalCategoryNewName.value = ''
+  if (editTodoModalCategoryNewColor) editTodoModalCategoryNewColor.value = getDefaultCategoryColor()
+}
+
+function setupCategoryAddToggle(toggleBtn, formEl, nameInput) {
+  if (!toggleBtn || !formEl) return
+  toggleBtn.addEventListener('click', () => {
+    const isExpanded = formEl.hidden === false
+    formEl.hidden = !formEl.hidden
+    toggleBtn.hidden = !formEl.hidden
+    toggleBtn.setAttribute('aria-expanded', String(!isExpanded))
+    if (!formEl.hidden && nameInput) nameInput.focus()
+  })
+}
+
+setupCategoryAddToggle(addTodoModalCategoryToggleBtn, addTodoModalCategoryAddForm, addTodoModalCategoryNewName)
+setupCategoryAddToggle(editTodoModalCategoryToggleBtn, editTodoModalCategoryAddForm, editTodoModalCategoryNewName)
+
+async function handleInlineAddCategory(isAddModal) {
+  const nameInput = isAddModal ? addTodoModalCategoryNewName : editTodoModalCategoryNewName
+  const colorInput = isAddModal ? addTodoModalCategoryNewColor : editTodoModalCategoryNewColor
+  const name = nameInput?.value?.trim()
+  if (!name || !supabase) return
+  const user = await getCurrentUser()
+  if (!user) return
+  const color = colorInput?.value?.trim() || getDefaultCategoryColor()
+  const { error } = await supabase.from('categories').insert({ user_id: user.id, name, color })
+  if (error) {
+    console.error('Failed to add category:', error)
+    return
+  }
+  nameInput.value = ''
+  colorInput.value = getDefaultCategoryColor()
+  if (isAddModal) {
+    hideAndResetAddTodoCategoryForm()
+  } else {
+    hideAndResetEditTodoCategoryForm()
+  }
+  await loadCategories()
+  populateCategoryPills()
+  if (isAddModal) setAddTodoModalCategory(name)
+  else setEditTodoModalCategory(name)
+}
+
+if (addTodoModalCategoryAddBtn) {
+  addTodoModalCategoryAddBtn.addEventListener('click', () => handleInlineAddCategory(true))
+}
+if (addTodoModalCategoryCancelBtn) {
+  addTodoModalCategoryCancelBtn.addEventListener('click', hideAndResetAddTodoCategoryForm)
+}
+if (editTodoModalCategoryAddBtn) {
+  editTodoModalCategoryAddBtn.addEventListener('click', () => handleInlineAddCategory(false))
+}
+if (editTodoModalCategoryCancelBtn) {
+  editTodoModalCategoryCancelBtn.addEventListener('click', hideAndResetEditTodoCategoryForm)
+}
+
 function openEditTodoModal(id) {
   const todo = getTodo(id)
   if (!todo || !editTodoModal || !editTodoModalBackdrop) return
   editingTodoId = id
-  populateCategoryDropdowns()
+  populateCategoryPills()
   if (editTodoModalText) editTodoModalText.value = todo.text
-  if (editTodoModalImportance) editTodoModalImportance.value = todo.importance || ''
+  setEditTodoModalImportance(todo.importance || '')
   if (editTodoModalDueDate) editTodoModalDueDate.value = todo.dueDate || ''
-  if (editTodoModalCategory) editTodoModalCategory.value = todo.category || ''
+  setEditTodoModalCategory(todo.category || '')
   if (editTodoModalStatus) editTodoModalStatus.value = todo.status || 'tasks'
   editTodoModal.hidden = false
   editTodoModal.setAttribute('aria-hidden', 'false')
@@ -1164,6 +1327,7 @@ function closeEditTodoModal() {
   editTodoModalBackdrop.hidden = true
   editTodoModalBackdrop.setAttribute('aria-hidden', 'true')
   editingTodoId = null
+  hideAndResetEditTodoCategoryForm()
 }
 
 if (editTodoModalForm) {
@@ -1173,9 +1337,9 @@ if (editTodoModalForm) {
     const user = await getCurrentUser()
     if (!user) return
     const text = editTodoModalText?.value?.trim() ?? ''
-    const importance = editTodoModalImportance?.value?.trim() || null
+    const importance = getEditTodoModalImportance()
     const dueDate = editTodoModalDueDate?.value?.trim() || null
-    const category = editTodoModalCategory?.value?.trim() || null
+    const category = getEditTodoModalCategory()
     const status = editTodoModalStatus?.value?.trim() || 'tasks'
     let result = await supabase
       .from('todos')
@@ -1218,6 +1382,7 @@ if (editTodoModalForm) {
     applyFilterSortAndRender()
   })
 }
+if (editTodoModalClose) editTodoModalClose.addEventListener('click', closeEditTodoModal)
 if (editTodoModalCancel) editTodoModalCancel.addEventListener('click', closeEditTodoModal)
 if (editTodoModalBackdrop) editTodoModalBackdrop.addEventListener('click', closeEditTodoModal)
 
