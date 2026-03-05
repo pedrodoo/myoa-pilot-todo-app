@@ -3,7 +3,7 @@
  */
 
 import { supabase } from './supabase.js'
-import { COPY, SIGN_OUT_TIMEOUT_MS } from './config.js'
+import { COPY, SIGN_OUT_TIMEOUT_MS, SIGN_IN_TIMEOUT_MS, CREATE_ACCOUNT_TIMEOUT_MS } from './config.js'
 import { dom } from './dom.js'
 import { escapeHtml } from './utils.js'
 
@@ -76,6 +76,13 @@ export function closeAuthModal() {
   a.modal.setAttribute('aria-hidden', 'true')
   a.modalBackdrop.hidden = true
   a.modalBackdrop.setAttribute('aria-hidden', 'true')
+}
+
+function setAuthLoading(loading) {
+  const a = getAuthEl()
+  if (!a.submit) return
+  a.submit.disabled = loading
+  a.submit.textContent = loading ? (COPY.modal.loadingLabel ?? 'Signing in…') : (COPY.modal.submitLabels[authModalMode] ?? COPY.modal.defaultSubmit)
 }
 
 function setAuthMessage(text, type) {
@@ -209,18 +216,34 @@ async function handleSignOut(callbacks) {
 }
 
 async function handleCreateAccount(email, password, callbacks) {
-  // #region agent log
-  fetch('http://127.0.0.1:7797/ingest/fbf92ecf-0d05-4380-b520-3386957e7bcb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a4347f'},body:JSON.stringify({sessionId:'a4347f',location:'auth.js:handleCreateAccount:entry',message:'Create account started',data:{hasEmail:!!email,emailLen:typeof email==='string'?email.length:0,hasPassword:!!password,passwordLen:password?password.length:0},timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});
-  // #endregion
   const msg = COPY.messages
   const emailTrimmed = typeof email === 'string' ? email.trim() : ''
   if (!emailTrimmed) {
     setAuthMessage(msg.enterEmail, 'error')
     return
   }
-  const { data, error } = await supabase.auth.updateUser({ email: emailTrimmed })
   // #region agent log
-  fetch('http://127.0.0.1:7797/ingest/fbf92ecf-0d05-4380-b520-3386957e7bcb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a4347f'},body:JSON.stringify({sessionId:'a4347f',location:'auth.js:updateUser-email:after',message:'updateUser email result',data:{hasError:!!error,errorCode:error?.code,errorMsg:error?.message?.slice(0,80),hasData:!!data},timestamp:Date.now(),hypothesisId:'B'})}).catch(()=>{});
+  fetch('http://127.0.0.1:7797/ingest/fbf92ecf-0d05-4380-b520-3386957e7bcb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'935137'},body:JSON.stringify({sessionId:'935137',location:'auth.js:before-updateUser',message:'Before supabase.auth.updateUser',data:{},hypothesisId:'H2',timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
+  let data, error
+  try {
+    const result = await Promise.race([
+      supabase.auth.updateUser({ email: emailTrimmed }),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('createAccount timeout')), CREATE_ACCOUNT_TIMEOUT_MS)
+      ),
+    ])
+    data = result.data
+    error = result.error
+  } catch (err) {
+    if (err?.message === 'createAccount timeout') {
+      setAuthMessage(msg.createAccountTimeout, 'error')
+      return
+    }
+    throw err
+  }
+  // #region agent log
+  fetch('http://127.0.0.1:7797/ingest/fbf92ecf-0d05-4380-b520-3386957e7bcb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'935137'},body:JSON.stringify({sessionId:'935137',location:'auth.js:after-updateUser',message:'After updateUser',data:{hasError:!!error,errorCode:error?.code},hypothesisId:'H2',timestamp:Date.now()})}).catch(()=>{});
   // #endregion
   if (error) {
     if (error.code === 'over_email_send_rate_limit' || error.status === 429 || error.message?.toLowerCase().includes('too many') || error.message?.toLowerCase().includes('rate limit')) {
@@ -252,14 +275,8 @@ async function handleCreateAccount(email, password, callbacks) {
   }
   setAuthMessage(msg.checkEmailVerify, 'success')
   if (password && password.length >= 6) {
-    // #region agent log
-    fetch('http://127.0.0.1:7797/ingest/fbf92ecf-0d05-4380-b520-3386957e7bcb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a4347f'},body:JSON.stringify({sessionId:'a4347f',location:'auth.js:before-updateUser-password',message:'About to updateUser password',data:{passwordLen:password?.length},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     const { error: pwError } = await supabase.auth.updateUser({ password })
     if (pwError) {
-      // #region agent log
-      fetch('http://127.0.0.1:7797/ingest/fbf92ecf-0d05-4380-b520-3386957e7bcb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a4347f'},body:JSON.stringify({sessionId:'a4347f',location:'auth.js:updateUser-password-error',message:'Password update failed, closing modal anyway',data:{pwErrorCode:pwError?.code,pwErrorMsg:pwError?.message?.slice(0,100)},timestamp:Date.now(),hypothesisId:'A',runId:'post-fix'})}).catch(()=>{});
-      // #endregion
       if (pwError.status === 429 || pwError.message?.toLowerCase().includes('too many') || pwError.message?.toLowerCase().includes('rate limit')) {
         setAuthMessage(msg.rateLimit, 'error')
         return
@@ -268,9 +285,6 @@ async function handleCreateAccount(email, password, callbacks) {
       /* Email succeeded; password cannot be set until email is verified. Still close modal and update UI. */
     }
   }
-  // #region agent log
-  fetch('http://127.0.0.1:7797/ingest/fbf92ecf-0d05-4380-b520-3386957e7bcb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a4347f'},body:JSON.stringify({sessionId:'a4347f',location:'auth.js:before-closeAuthModal',message:'About to close modal and update UI',data:{},timestamp:Date.now(),hypothesisId:'A,D'})}).catch(()=>{});
-  // #endregion
   closeAuthModal()
   if (callbacks.onDismissOnboarding) callbacks.onDismissOnboarding()
   if (callbacks.onLoadAndRenderTodos) await callbacks.onLoadAndRenderTodos()
@@ -279,7 +293,23 @@ async function handleCreateAccount(email, password, callbacks) {
 
 async function handleSignIn(email, password, anonymousUserId, callbacks) {
   const msg = COPY.messages
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+  let data, error
+  try {
+    const result = await Promise.race([
+      supabase.auth.signInWithPassword({ email, password }),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('signIn timeout')), SIGN_IN_TIMEOUT_MS)
+      ),
+    ])
+    data = result.data
+    error = result.error
+  } catch (err) {
+    if (err?.message === 'signIn timeout') {
+      setAuthMessage(msg.signInTimeout, 'error')
+      return
+    }
+    throw err
+  }
   if (error) {
     if (error.status === 429 || error.message?.toLowerCase().includes('too many') || error.message?.toLowerCase().includes('rate limit')) {
       setAuthMessage(msg.rateLimit, 'error')
@@ -301,11 +331,12 @@ async function handleSignIn(email, password, anonymousUserId, callbacks) {
     setAuthMessage(text, 'error')
     return
   }
-  if (anonymousUserId) {
-    const { error: rpcError } = await supabase.rpc('migrate_anonymous_todos', { from_user_id: anonymousUserId })
-    if (rpcError) console.error('Failed to migrate anonymous todos:', rpcError)
-  }
   closeAuthModal()
+  if (anonymousUserId) {
+    supabase.rpc('migrate_anonymous_todos', { from_user_id: anonymousUserId }).then(({ error: rpcError }) => {
+      if (rpcError) console.error('Failed to migrate anonymous todos:', rpcError)
+    }).catch(() => {})
+  }
   if (callbacks.onDismissOnboarding) callbacks.onDismissOnboarding()
   if (callbacks.showToast) callbacks.showToast(COPY.toast.signedIn)
   if (callbacks.onLoadAndRenderTodos) await callbacks.onLoadAndRenderTodos()
@@ -407,6 +438,9 @@ export function initAuth(callbacks = {}) {
   })
 
   a.form?.addEventListener('submit', async (e) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7797/ingest/fbf92ecf-0d05-4380-b520-3386957e7bcb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'935137'},body:JSON.stringify({sessionId:'935137',location:'auth.js:submit-entry',message:'Form submit fired',data:{authModalMode,hasEmail:!!a.email?.value,hasPassword:!!a.password?.value},hypothesisId:'H1',timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     e.preventDefault?.()
     const msg = COPY.messages
     setAuthMessage('')
@@ -414,6 +448,10 @@ export function initAuth(callbacks = {}) {
       setAuthMessage('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.', 'error')
       return
     }
+    setAuthLoading(true)
+    // #region agent log
+    fetch('http://127.0.0.1:7797/ingest/fbf92ecf-0d05-4380-b520-3386957e7bcb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'935137'},body:JSON.stringify({sessionId:'935137',location:'auth.js:after-loading',message:'setAuthLoading(true) done',data:{authModalMode},hypothesisId:'H3',timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     try {
       const email = a.email.value.trim()
       const password = a.password.value
@@ -449,7 +487,7 @@ export function initAuth(callbacks = {}) {
       }
       if (authModalMode === 'create') {
         // #region agent log
-        fetch('http://127.0.0.1:7797/ingest/fbf92ecf-0d05-4380-b520-3386957e7bcb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a4347f'},body:JSON.stringify({sessionId:'a4347f',location:'auth.js:form-submit:create',message:'Form submit create path',data:{authModalMode,authModalModeExpected:'create'},timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7797/ingest/fbf92ecf-0d05-4380-b520-3386957e7bcb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'935137'},body:JSON.stringify({sessionId:'935137',location:'auth.js:before-handleCreateAccount',message:'About to call handleCreateAccount',data:{emailLen:email?.length},hypothesisId:'H2',timestamp:Date.now()})}).catch(()=>{});
         // #endregion
         await handleCreateAccount(email, password, callbacks)
       } else {
@@ -462,7 +500,15 @@ export function initAuth(callbacks = {}) {
         await handleSignIn(email, password, anonymousUserId, callbacks)
       }
     } catch (err) {
+      // #region agent log
+      fetch('http://127.0.0.1:7797/ingest/fbf92ecf-0d05-4380-b520-3386957e7bcb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'935137'},body:JSON.stringify({sessionId:'935137',location:'auth.js:catch',message:'Submit handler catch',data:{errMsg:err?.message},hypothesisId:'H3',timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       setAuthMessage(err?.message ?? msg.somethingWentWrong, 'error')
+    } finally {
+      // #region agent log
+      fetch('http://127.0.0.1:7797/ingest/fbf92ecf-0d05-4380-b520-3386957e7bcb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'935137'},body:JSON.stringify({sessionId:'935137',location:'auth.js:finally',message:'Submit handler finally',data:{},hypothesisId:'H2',timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      setAuthLoading(false)
     }
   })
 

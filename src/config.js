@@ -6,7 +6,7 @@
 export const COPY = {
   authBlock: {
     guestLabel: 'Using as guest',
-    verificationSent: (email) => `Verification email sent to ${email}. Check your inbox.`,
+    verificationSent: (email) => `Verification email sent to ${email}. Check your inbox and click the link (e.g. "Change Email") to sign in.`,
     signedInAs: (email) => `Signed in as ${email}`,
     signedInFallback: 'Signed in',
     createAccount: 'Create account',
@@ -28,6 +28,7 @@ export const COPY = {
     },
     defaultTitle: 'Sign in',
     defaultSubmit: 'Submit',
+    loadingLabel: 'Signing in…',
   },
   messages: {
     enterEmail: 'Enter your email address.',
@@ -44,10 +45,12 @@ export const COPY = {
     emailNotConfirmed: 'Please verify your email using the link we sent you, then sign in.',
     userBanned: 'This account is temporarily disabled. Contact support if you need help.',
     somethingWentWrong: 'Something went wrong. Please try again.',
+    signInTimeout: 'Sign in took too long. Check your connection and try again.',
+    createAccountTimeout: 'Request took too long. Check your connection and try again.',
     invalidEmailFormat: 'Please enter a valid email address.',
     emailNotAuthorized: "This email domain isn't supported. Use a different address.",
     signupDisabled: 'Sign up is currently unavailable.',
-    checkEmailVerify: 'Check your email to verify. You can set a password after verifying.',
+    checkEmailVerify: 'Check your email and click the verification link to complete sign-in. You can set a password after verifying.',
     checkEmailSetPassword: 'Check your email to verify, then you can set a password here.',
     checkEmailReset: 'Check your email for a link to reset your password.',
     passwordUpdated: 'Password updated',
@@ -103,5 +106,7 @@ export const COPY = {
 
 export const TOAST_DURATION_MS = 4000
 export const SIGN_OUT_TIMEOUT_MS = 3000
+export const SIGN_IN_TIMEOUT_MS = 15000
+export const CREATE_ACCOUNT_TIMEOUT_MS = 15000
 export const ONBOARDING_VISIT_COUNT_KEY = 'todo-app-onboarding-visit-count'
 export const ONBOARDING_MAX_VISITS = 3
