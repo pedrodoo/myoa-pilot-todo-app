@@ -1,0 +1,107 @@
+/**
+ * UI copy and configuration constants.
+ * All user-facing text and timing values in one place.
+ */
+
+export const COPY = {
+  authBlock: {
+    guestLabel: 'Using as guest',
+    verificationSent: (email) => `Verification email sent to ${email}. Check your inbox.`,
+    signedInAs: (email) => `Signed in as ${email}`,
+    signedInFallback: 'Signed in',
+    createAccount: 'Create account',
+    signIn: 'Sign in',
+    signOut: 'Sign out',
+  },
+  modal: {
+    titles: {
+      signin: 'Sign in',
+      create: 'Create account',
+      recover: 'Reset password',
+      'set-password': 'Set new password',
+    },
+    submitLabels: {
+      signin: 'Sign in',
+      create: 'Create account',
+      recover: 'Send reset link',
+      'set-password': 'Set password',
+    },
+    defaultTitle: 'Sign in',
+    defaultSubmit: 'Submit',
+  },
+  messages: {
+    enterEmail: 'Enter your email address.',
+    enterPassword: 'Enter your password.',
+    enterNewPassword: 'Enter a new password.',
+    passwordTooShort: 'Password must be at least 6 characters.',
+    passwordsDontMatch: 'Passwords do not match.',
+    rateLimit: 'Too many attempts. Please try again in a few minutes.',
+    emailRateLimit: 'Too many verification emails sent. Please try again in a few minutes.',
+    emailAlreadyRegistered: 'This email is already registered. Sign in instead.',
+    createAccountError: 'Failed to create account.',
+    signInError: 'Sign in failed.',
+    invalidCredentials: 'Invalid email or password. Please try again.',
+    emailNotConfirmed: 'Please verify your email using the link we sent you, then sign in.',
+    userBanned: 'This account is temporarily disabled. Contact support if you need help.',
+    somethingWentWrong: 'Something went wrong. Please try again.',
+    invalidEmailFormat: 'Please enter a valid email address.',
+    emailNotAuthorized: "This email domain isn't supported. Use a different address.",
+    signupDisabled: 'Sign up is currently unavailable.',
+    checkEmailVerify: 'Check your email to verify. You can set a password after verifying.',
+    checkEmailSetPassword: 'Check your email to verify, then you can set a password here.',
+    checkEmailReset: 'Check your email for a link to reset your password.',
+    passwordUpdated: 'Password updated',
+    sendResetError: 'Failed to send reset email.',
+    updatePasswordError: 'Failed to update password.',
+  },
+  toast: {
+    signedIn: 'Signed in successfully',
+  },
+  onboarding: {
+    title: 'How to use this app',
+    steps: [
+      { title: 'Add a task', text: 'Type in the input below and click "Add to inbox" to create a task. You can also set importance, due date, and category before adding.' },
+      { title: 'Move tasks through columns', text: 'Drag cards between Inbox, To do, Doing, and Completed. You can also use the + button on a column to add a task there directly.' },
+      { title: 'Save your todos', text: "Create an account to store your todos so they're available on any device and never lost." },
+    ],
+    next: 'Next',
+    back: 'Back',
+    createAccount: 'Create account',
+    maybeLater: 'Maybe later',
+  },
+  deleteConfirm: 'Delete this item?',
+  deleteConfirmTitle: 'Delete card',
+  deleteConfirmMessage: 'Are you sure you want to delete this card?',
+  deleteConfirmYes: 'Yes',
+  deleteConfirmCancel: 'Cancel',
+  importance: 'Importance',
+  dueDate: 'Due date',
+  category: 'Category',
+  edit: 'Edit',
+  save: 'Save',
+  cancel: 'Cancel',
+  manageCategories: 'Manage categories',
+  addCategory: 'Add category',
+  sortBy: 'Sort by',
+  order: 'Order',
+  filter: 'Filter',
+  filterAll: 'All',
+  filterHighImportance: 'High importance',
+  filterOverdue: 'Overdue',
+  filterDueToday: 'Due today',
+  filterNoDate: 'No date',
+  filterByCategory: 'By category',
+  sortCreated: 'Created',
+  sortDueDate: 'Due date',
+  sortImportance: 'Importance',
+  sortCategory: 'Category',
+  sortStatus: 'Status',
+  orderAsc: 'Ascending',
+  orderDesc: 'Descending',
+  none: 'None',
+}
+
+export const TOAST_DURATION_MS = 4000
+export const SIGN_OUT_TIMEOUT_MS = 3000
+export const ONBOARDING_VISIT_COUNT_KEY = 'todo-app-onboarding-visit-count'
+export const ONBOARDING_MAX_VISITS = 3

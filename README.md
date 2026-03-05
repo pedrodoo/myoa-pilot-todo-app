@@ -128,9 +128,23 @@ todo-app/
 ├── package.json
 ├── .env                    # your Supabase credentials (not committed)
 ├── src/
-│   ├── main.js             # app entry, DOM, auth, modals, Kanban, filters
-│   ├── todos.js            # todo state, Kanban rendering, filters/sort
+│   ├── main.js             # app entry, orchestrates all modules
+│   ├── config.js           # COPY (labels), timing constants
+│   ├── dom.js              # DOM references grouped by UI area
+│   ├── utils.js            # escapeHtml and shared utilities
+│   ├── state.js            # shared app state (categories, filter/sort)
+│   ├── auth.js             # auth block, hamburger, auth modal, sign in/out
+│   ├── onboarding.js       # step-by-step guide for new visitors
+│   ├── modals.js           # add-todo, edit-todo, delete-confirm, categories
+│   ├── todoHandlers.js     # form, column +, drag-drop, inline edit, filter/sort
+│   ├── data.js             # load todos/categories, populate dropdowns, render
+│   ├── todos.js            # in-memory todo state, Kanban rendering
 │   ├── supabase.js         # Supabase client
+│   ├── api/
+│   │   ├── todos.js        # todo CRUD (fetch, insert, update, delete)
+│   │   └── categories.js   # category CRUD
+│   ├── ui/
+│   │   └── toast.js        # toast notifications
 │   └── style.css
 └── supabase/
     └── migrations/         # SQL schema and migrations

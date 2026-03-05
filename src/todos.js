@@ -1,3 +1,5 @@
+import { escapeHtml } from './utils.js'
+
 /** In-memory todo list. Each item: { id, text, completed, status, importance, dueDate, category, created_at }. */
 let todos = [];
 
@@ -280,10 +282,3 @@ function runDropInAnimation(container, animateId) {
   });
 }
 
-/** Escapes a string so it can be safely used in innerHTML (avoids XSS). */
-function escapeHtml(str) {
-  if (str == null) return '';
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
