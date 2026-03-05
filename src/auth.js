@@ -68,7 +68,7 @@ export function openAuthModal(mode) {
 export function closeAuthModal() {
   const a = getAuthEl()
   if (a.modal.contains(document.activeElement)) {
-    const focusTarget = auth.block?.querySelector('button, [href], input')
+    const focusTarget = a.block?.querySelector('button, [href], input')
     if (focusTarget) focusTarget.focus()
     else document.body.focus()
   }
